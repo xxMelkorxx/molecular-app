@@ -3,10 +3,308 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:MolecularApp"
-        mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:cm="clr-namespace:System.ComponentModel;assembly=System"
+        xmlns:helix="http://helix-toolkit.org/wpf"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
 
+        mc:Ignorable="d"
+        Title="ННГУ ИСИТ | Моделирование методом молекулярной динамики"
+        Icon="/icons/unn_logo.ico"
+        RenderOptions.BitmapScalingMode="HighQuality"
+        WindowState="Maximized"
+        FontSize="13" FontFamily="Roboto Mono"
+        Loaded="OnLoadedMainWindow">
+
+    <Grid Margin="5,0,5,0">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3.5*" />
+            <ColumnDefinition Width="5*" />
+            <ColumnDefinition Width="2*" />
+        </Grid.ColumnDefinitions>
+
+        <GroupBox Grid.Column="0" Header="Графики">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <WpfPlot Grid.Row="0" Name="ChartEnergy" FontFamily="Roboto Mono" />
+                <WpfPlot Grid.Row="1" Name="ChartRadDist" FontFamily="Roboto Mono" />
+                <WpfPlot Grid.Row="2" Name="ChartMsd" FontFamily="Roboto Mono" />
+                <WpfPlot Grid.Row="3" Name="ChartAcfSpeed" FontFamily="Roboto Mono" />
+            </Grid>
+        </GroupBox>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="18*" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="10*" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <GroupBox Grid.Row="0" Header="Визуализация">
+                <helix:HelixViewport3D x:Name="Viewport"
+                                       Background="White"
+                                       RenderOptions.BitmapScalingMode="LowQuality"
+                                       CameraRotationMode="Trackball" />
+            </GroupBox>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="20*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Slider Grid.Column="0" Name="SliderTimeStep" IsEnabled="False"
+                        ValueChanged="OnValueChangedSliderTimeStep" />
+
+                <Button Grid.Column="1" Name="BtnToBegin" ToolTip="В начало"
+                        IsEnabled="False" Click="OnClickBtnToBegin"
+                        MaxWidth="50" MaxHeight="50"
+                        Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
+                    <Image Source="icons/angle-double-small-left.png"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                </Button>
+                <Button Grid.Column="2" Name="BtnStepBack" ToolTip="Шаг назад"
+                        IsEnabled="False" Click="OnClickBtnStepBack"
+                        MaxWidth="50" MaxHeight="50"
+                        Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
+                    <Image Source="icons/angle-small-left.png"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                </Button>
+                <Button Grid.Column="3" Name="BtnPlayTimer" ToolTip="Запустить анимацию"
+                        IsEnabled="False" Click="OnClickBtnPlayTimer"
+                        MaxWidth="50" MaxHeight="50"
+                        Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
+                    <Image Source="icons/play-2.png"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                </Button>
+                <Button Grid.Column="4" Name="BtnPauseTimer" ToolTip="Останопить анимацию"
+                        IsEnabled="False" Click="OnClickBtnPauseTimer"
+                        MaxWidth="50" MaxHeight="50"
+                        Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
+                    <Image Source="icons/pause.png"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                </Button>
+                <Button Grid.Column="5" Name="BtnStepForward" ToolTip="Шаг назад"
+                        IsEnabled="False" Click="OnClickBtnStepForward"
+                        MaxWidth="50" MaxHeight="50"
+                        Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
+                    <Image Source="icons/angle-small-right.png"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                </Button>
+                <Button Grid.Column="6" Name="BtnToEnd" ToolTip="В конец"
+                        IsEnabled="False" Click="OnClickBtnToEnd"
+                        MaxWidth="50" MaxHeight="50"
+                        Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
+                    <Image Source="icons/angle-double-small-right.png"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                </Button>
+                <Button Grid.Column="7" Name="BtnFaster" ToolTip="Ускорить анимацию"
+                        IsEnabled="False" Click="OnClickBtnFaster"
+                        MaxWidth="50" MaxHeight="50"
+                        Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
+                    <Image Source="icons/angle-double-small-up.png"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                </Button>
+                <Button Grid.Column="8" Name="BtnSlower" ToolTip="Замедлить анимацию"
+                        IsEnabled="False" Click="OnClickBtnSlower"
+                        MaxWidth="50" MaxHeight="50"
+                        Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
+                    <Image Source="icons/angle-double-small-down.png"
+                           RenderOptions.BitmapScalingMode="HighQuality" />
+                </Button>
+            </Grid>
+
+            <GroupBox Grid.Row="2" Header="Выходная информация">
+                <RichTextBox Name="RtbOutputInfo" FontFamily="Roboto Mono Bold"
+                             IsReadOnly="True" VerticalScrollBarVisibility="Visible" FontSize="12">
+                    <RichTextBox.Resources>
+                        <Style TargetType="{x:Type Paragraph}">
+                            <Setter Property="Margin" Value="0" />
+                        </Style>
+                    </RichTextBox.Resources>
+                </RichTextBox>
+            </GroupBox>
+
+            <ProgressBar Grid.Row="3" Name="ProgressBar" Maximum="1000" Margin="5 5 5 5" />
+        </Grid>
+
+        <StackPanel Grid.Column="2">
+            <GroupBox Header="Параметры системы">
+                <StackPanel>
+                    <WrapPanel HorizontalAlignment="Right">
+                        <Label>Размер системы</Label>
+                        <xctk:IntegerUpDown Name="NudSize" TextAlignment="Right" Width="100" Height="25" Minimum="1" Maximum="1000" Increment="1" Value="3" />
+                    </WrapPanel>
+
+                    <CheckBox Name="CbIsDisplacement" HorizontalAlignment="Right" Margin="0 5 0 0"
+                              Checked="OnCheckedDisplacement"
+                              Unchecked="OnUncheckedDisplacement">
+                        Задать смещение атомов?
+                    </CheckBox>
+
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Величина смещения</Label>
+                        <xctk:DoubleUpDown Name="NudDisplacement" TextAlignment="Right" Width="100" Height="25" Minimum="0" Maximum="1" Increment="0.01" Value="0.05"
+                                           IsEnabled="False" />
+                    </WrapPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Параметры моделирования">
+                <StackPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Временной шаг</Label>
+                        <xctk:DoubleUpDown Name="NudTimeStep" TextAlignment="Right" Width="75" Height="25" Minimum="0.0001" Maximum="1" Increment="0.01" Value="0.01" />
+                        <Label>пс</Label>
+                    </WrapPanel>
+
+                    <WrapPanel HorizontalAlignment="Right">
+                        <Label>Число шагов</Label>
+                        <xctk:IntegerUpDown Name="NudCountStep"
+                                            TextAlignment="Right" Width="100" Height="25"
+                                            Minimum="1" Maximum="10000000" Increment="1000" Value="1000"
+                                            ValueChanged="OnValueChangedNudCountStep" />
+                    </WrapPanel>
+
+                    <CheckBox Name="CbIsSnapshot"
+                              HorizontalAlignment="Right" Margin="0 5 0 0"
+                              Checked="OnCheckedIsSnapshot"
+                              Unchecked="OnUncheckedIsSnapshot">
+                        Выводить информацию?
+                    </CheckBox>
+
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Шаг снимков системы</Label>
+                        <xctk:IntegerUpDown Name="NudSnapshotStep"
+                                            TextAlignment="Right" Width="100" Height="25"
+                                            Minimum="1" Maximum="100000" Increment="1" Value="10"
+                                            ValueChanged="OnValueChangedNudSnapshotStep" />
+                    </WrapPanel>
+
+                    <WrapPanel HorizontalAlignment="Right">
+                        <Label>Шаг расчёта R²</Label>
+                        <xctk:IntegerUpDown Name="NudStepMsd"
+                                            TextAlignment="Right" Width="100" Height="25"
+                                            Minimum="10" Maximum="10000" Increment="1000" Value="100" />
+                    </WrapPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Параметры перенормироваки скоростей">
+                <StackPanel>
+                    <CheckBox Margin="0 5 0 0"
+                              HorizontalAlignment="Right"
+                              Checked="OnCheckedIsRenormSpeeds"
+                              Unchecked="OnUncheckedIsRenormSpeeds">
+                        Осуществлять перенормировку?
+                    </CheckBox>
+
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Температура</Label>
+                        <xctk:IntegerUpDown Name="NudTemperature"
+                                            TextAlignment="Right" Width="100" Height="25"
+                                            Minimum="0" Maximum="10000" Increment="10" Value="300"
+                                            IsEnabled="False" />
+                    </WrapPanel>
+
+                    <WrapPanel HorizontalAlignment="Right">
+                        <Label>Шаг перенормировки</Label>
+                        <xctk:IntegerUpDown Name="NudStepNorm"
+                                            TextAlignment="Right" Width="100" Height="25"
+                                            Minimum="1" Maximum="100" Increment="5" Value="10"
+                                            IsEnabled="False" />
+                    </WrapPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Параметры АКФ скорости">
+                <StackPanel>
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Число отсчётов</Label>
+                        <xctk:IntegerUpDown Name="NudCountNumberAcf"
+                                            TextAlignment="Right" Width="100" Height="25"
+                                            Minimum="50" Maximum="10000" Increment="10" Value="100"
+                                            ValueChanged="OnValueChangedNudCountNumberAcf" />
+                    </WrapPanel>
+                    <WrapPanel HorizontalAlignment="Right">
+                        <Label>Число повторений</Label>
+                        <xctk:IntegerUpDown Name="NudCountRepeatAcf"
+                                            TextAlignment="Right" Width="100" Height="25"
+                                            Minimum="5" Maximum="100" Increment="5" Value="5" />
+                    </WrapPanel>
+                    <WrapPanel HorizontalAlignment="Right">
+                        <Label>Шаг повторений</Label>
+                        <xctk:IntegerUpDown Name="NudStepRepeatAcf"
+                                            TextAlignment="Right" Width="100" Height="25"
+                                            Minimum="5" Maximum="100" Increment="5" Value="10" />
+                    </WrapPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Header="Панель управления">
+                <StackPanel>
+                    <WrapPanel Margin="0 5 0 0">
+                        <Button Name="BtnCreateModel" Width="50" Height="50"
+                                ToolTip="Создать модель"
+                                Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}"
+                                Click="OnCreateModel">
+                            <Image Source="icons/check.png" Width="40" Height="40"
+                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                        </Button>
+                        <Label VerticalAlignment="Center">Создать модель</Label>
+                    </WrapPanel>
+
+                    <WrapPanel>
+                        <Button Name="BtnStartCalculation" IsEnabled="False" Width="50" Height="50"
+                                ToolTip="Запуск моделирования"
+                                Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}"
+                                Click="OnStartCalculation">
+                            <Image Source="icons/play.png" Width="40" Height="40"
+                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                        </Button>
+                        <Label VerticalAlignment="Center">Запуск моделирования</Label>
+                    </WrapPanel>
+
+                    <WrapPanel>
+                        <Button Name="BtnCancelCalculation" IsEnabled="False" Width="50" Height="50"
+                                ToolTip="Сброс модели"
+                                Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}"
+                                Click="OnCancelCalculation">
+                            <Image Source="icons/cancel.png"
+                                   RenderOptions.BitmapScalingMode="HighQuality" />
+                        </Button>
+                        <Label VerticalAlignment="Center">Отмена моделирования</Label>
+                    </WrapPanel>
+                </StackPanel>
+            </GroupBox>
+        </StackPanel>
     </Grid>
+
+    <Window.Resources>
+        <cm:BackgroundWorker x:Key="BackgroundWorkerCreateModel"
+                             WorkerReportsProgress="True"
+                             DoWork="OnBackgroundWorkerDoWorkCreateModel"
+                             RunWorkerCompleted="OnBackgroundWorkerRunWorkerCompletedCreateModel"
+                             ProgressChanged="OnBackgroundWorkerProgressChangedCreateModel" />
+        <cm:BackgroundWorker x:Key="BackgroundWorkerCalculation"
+                             WorkerReportsProgress="True"
+                             WorkerSupportsCancellation="True"
+                             DoWork="OnBackgroundWorkerDoWorkCalculation"
+                             RunWorkerCompleted="OnBackgroundWorkerRunWorkerCompletedCalculation"
+                             ProgressChanged="OnBackgroundWorkerProgressChangedCalculation" />
+    </Window.Resources>
 </Window>

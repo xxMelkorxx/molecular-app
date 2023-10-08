@@ -12,7 +12,5 @@ public struct PointD
         Y = y;
     }
 
-    public PointD ToPoint() => new(X, Y);
-
     public PointD Rotate(double angle) => new(X * Math.Cos(angle) - Y * Math.Sin(angle), X * Math.Sin(angle) + Y * Math.Cos(angle));
 }
