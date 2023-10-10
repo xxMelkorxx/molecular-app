@@ -16,6 +16,9 @@ public partial class AtomicModel
         // Рассчёт радиуса поиска соседей с учётом величины сдвига при расчёте ускорений (методом трёхточечного дифференцирования).
         var searchRadius = _potential.GetRadiusCutoff(FractionGe) + 1.2 * (1e-3 * LatticeGeSn);
         
+        // Рассчёт соседей для каждого атома.
+        SearchAtomsNeighbours(searchRadius);
+        
         Accel();
 
         Atoms.ForEach(atom => _ke += 0.5 * atom.Velocity.SquaredMagnitude() * atom.Weight);

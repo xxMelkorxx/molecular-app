@@ -40,17 +40,13 @@ public class TersoffPotential : IPotential
         }
     }
 
-    public PotentialParams paramsSn, paramsGe, paramsSnGe;
-    // private AtomType potAtomType1, potAtomType2;
+    private PotentialParams _paramsSn, _paramsGe, _paramsSnGe;
 
-    public TersoffPotential(PotentialParams paramsGe, PotentialParams paramsSn, AtomType atomType1, AtomType atomType2)
+    public TersoffPotential(PotentialParams paramsGe, PotentialParams paramsSn)
     {
-        // potAtomType1 = atomType1;
-        // potAtomType2 = atomType2;
-
-        this.paramsGe = paramsGe;
-        this.paramsSn = paramsSn;
-        this.paramsSnGe = new PotentialParams(paramsGe, paramsSn);
+        this._paramsGe = paramsGe;
+        this._paramsSn = paramsSn;
+        this._paramsSnGe = new PotentialParams(paramsGe, paramsSn);
     }
 
     /// <summary>
@@ -105,37 +101,28 @@ public class TersoffPotential : IPotential
     /// <returns></returns>
     private static double Cos(double Rij, double Rik, double Rjk) => (double.Pow(Rik, 2) + double.Pow(Rij, 2) - double.Pow(Rjk, 2)) / (2.0 * Rij * Rik);
 
-    private double DzetaIJ(PotentialParams p, Atom selAtom, Dictionary<PairIndexes, double> distancesIJ, double rij, int idxJ)
+    private double DzetaIJ(PotentialParams p, Atom atomI, Dictionary<PairIndexes, double> distancesIJ, double rij, int idxJ)
     {
-        double dzeta = 0;
-        PairIndexes indexes;
-        var neighJ = selAtom.Neighbours[idxJ];
-
-        for (int k = 0; k < selAtom.Neighbours.Count; k++)
+        var dzeta = 0d;
+        var atomJ = atomI.Neighbours[idxJ];
+        for (var k = 0; k < atomI.Neighbours.Count; k++)
         {
             if (k == idxJ) continue;
+            var atomK = atomI.Neighbours[k];
 
-            Atom neighK = selAtom.Neighbours[k];
+            var rik = distancesIJ[PairIndexes.GetIndexes(atomI, atomK)];
+            var pik = (atomI.Type == atomK.Type) ? (atomI.Type == AtomType.Ge ? _paramsGe : _paramsSn) : _paramsSnGe;
 
-            indexes = PairIndexes.GetIndexes(selAtom, neighK);
-            double rik = distancesIJ[indexes];
+            if (rik > pik.S)
+                return 0;
+            
+            var rjk = distancesIJ[PairIndexes.GetIndexes(atomJ, atomK)];
 
-            PotentialParams pik = potType1;
-            if (selAtom.AtomType == potAtomType2) pik = potType2;
-            if (selAtom.AtomType != neighK.AtomType) pik = potType12;
+            var c2 = p.c * p.c;
+            var d2 = p.d * p.d;
+            var cos = 1.0 + c2 / d2 - c2 / (d2 + double.Pow(p.h - Cos(rij, rik, rjk), 2));
 
-            if (rik < pik.S)
-            {
-                indexes = PairIndexes.GetIndexes(neighJ, neighK);
-                double rjk = distancesIJ[indexes];
-
-                double cos = Cos(rij, rik, rjk);
-                double c2 = p.c * p.c;
-                double d2 = p.d * p.d;
-                cos = 1.0 + (c2 / d2) - (c2 / (d2 + Math.Pow(p.h - cos, 2)));
-
-                dzeta += Fc(pik, rik) * cos; //* Math.Exp(Math.Pow(pij.l2 * (rij - rik), 3));
-            }
+            dzeta += Fc(pik, rik) * cos;
         }
 
         return dzeta;
@@ -146,34 +133,26 @@ public class TersoffPotential : IPotential
     /// </summary>
     /// <param name="fraction"></param>
     /// <returns></returns>
-    public double GetRadiusCutoff(double fraction) => fraction >= 0.5 ? paramsGe.S : paramsSn.S;
+    public double GetRadiusCutoff(double fraction) => fraction >= 0.5 ? _paramsGe.S : _paramsSn.S;
 
-    public double PotentialEnergy(Atom selAtom, Dictionary<PairIndexes, double> distancesIJ)
+    public double PotentialEnergy(Atom atomI, Dictionary<PairIndexes, double> distancesIJ)
     {
-        double energy = 0;
-        PairIndexes indexes;
-
-        for (int j = 0; j < selAtom.Neighbours.Count; j++)
+        var energy = 0d;
+        for (var j = 0; j < atomI.Neighbours.Count; j++)
         {
-            Atom neighJ = selAtom.Neighbours[j];
+            var atomJ = atomI.Neighbours[j];
 
-            indexes = PairIndexes.GetIndexes(selAtom, neighJ);
-            double rij = distancesIJ[indexes];
+            var rij = distancesIJ[PairIndexes.GetIndexes(atomI, atomJ)];
+            var pij = (atomI.Type == atomJ.Type) ? (atomI.Type == AtomType.Ge ? _paramsGe : _paramsSn) : _paramsSnGe;
+            var pi = atomI.Type == AtomType.Ge ? _paramsGe : _paramsSn;
 
-            PotentialParams pij = potType1;
-            if (selAtom.AtomType == potAtomType2) pij = potType2;
-            if (selAtom.AtomType != neighJ.AtomType) pij = potType12;
+            if (rij > pij.S)
+                return 0;
+            
+            var dzeta = DzetaIJ(pi, atomI, distancesIJ, rij, j);
+            var bij = double.Pow(1 + double.Pow(pi.b * dzeta, pi.n), -1d / (2 * pi.n));
 
-            PotentialParams pi = potType1;
-            if (selAtom.AtomType == potAtomType2) pi = potType2;
-
-            if (rij < pij.S)
-            {
-                double dzeta = DzetaIJ(pi, selAtom, distancesIJ, rij, j);
-                double bij = Math.Pow(1 + Math.Pow(pi.b * dzeta, pi.n), -1.0 / (2 * pi.n)); //-1.0 / 2 * pi.n
-
-                energy += Fc(pij, rij) * (Fa(pij, rij) + bij * Fr(pij, rij));
-            }
+            energy += Fc(pij, rij) * (Fa(pij, rij) + bij * Fr(pij, rij));
         }
 
         return energy / 2;

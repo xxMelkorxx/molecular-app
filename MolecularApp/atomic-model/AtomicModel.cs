@@ -14,12 +14,12 @@ public partial class AtomicModel
     /// <summary>
     /// Получить количество элементов в словаре которые хранят расстояния между атомами (исключает расстояние между соседями для каждого атома).
     /// </summary>
-    public int CountDistanceIJ { get; set; }
+    public int CountDistanceIJ => DistanceBetweenAtoms.Count;
     
     /// <summary>
     /// Расстояния между атомами с учётом параметра обрезания выбранного потенциала.
     /// </summary>
-    public Dictionary<PairIndexes, double> DistanceBetweenAtoms { get; set; }
+    public Dictionary<PairIndexes, double> DistanceBetweenAtoms { get; }
 
     /// <summary>
     /// Размер расчётной ячейки.
@@ -82,12 +82,12 @@ public partial class AtomicModel
     /// <summary>
     /// Доля Ge.
     /// </summary>
-    private double FractionGe { get; }
+    public double FractionGe { get; }
 
     /// <summary>
     /// Доля Sn.
     /// </summary>
-    private double FractionSn => 1 - FractionGe;
+    public double FractionSn => 1 - FractionGe;
     
     /// <summary>
     /// Параметр решётки сплава SnGe.
@@ -97,19 +97,19 @@ public partial class AtomicModel
     /// <summary>
     /// Параметры потенциала для Ge (германий).
     /// </summary>
-    public static TersoffPotential.PotentialParams ParamsGe => new(1769, 419.23, 0.31, 0.28, 9.01e-7, 106430, 15.65, 0.75627, -0.43884, 24.451, 17.047);
+    private static TersoffPotential.PotentialParams ParamsGe => new(1769, 419.23, 0.31, 0.28, 9.01e-7, 106430, 15.65, 0.75627, -0.43884, 24.451, 17.047);
 
     /// <summary>
     /// Параметры потенциала для Sn (олово).
     /// </summary>
-    public static TersoffPotential.PotentialParams ParamsSn => new(520.4677, 281.4117, 0.34, 0.30, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 15.5, 12.5649);
+    private static TersoffPotential.PotentialParams ParamsSn => new(520.4677, 281.4117, 0.34, 0.30, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 15.5, 12.5649);
     // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(526.46, 296.83, 0.34, 0.30, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 15.3, 12.56);
     // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(2848, 658.62, 0.32, 0.28, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 22.5, 16.2);
 
     /// <summary>
     /// Класс потенциала.
     /// </summary>
-    private IPotential _potential;
+    private readonly IPotential _potential;
 
     // Параметры симуляции.
     /// <summary>
@@ -171,6 +171,7 @@ public partial class AtomicModel
     public AtomicModel(int size, double fraction)
     {
         Atoms = new List<Atom>();
+        DistanceBetweenAtoms = new Dictionary<PairIndexes, double>();
         Size = size;
         FractionGe = fraction;
         CurrentStep = 1;
@@ -179,7 +180,7 @@ public partial class AtomicModel
         CreateDiamondSystem();
 
         // Выбор типа потенциала.
-        _potential = new TersoffPotential(ParamsGe, ParamsSn, AtomType.Ge, AtomType.Sn);
+        _potential = new TersoffPotential(ParamsGe, ParamsSn);
 
         // Начальная инициализация параметров.
         InitCalculation();

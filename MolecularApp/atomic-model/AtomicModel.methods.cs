@@ -8,6 +8,63 @@ namespace MolecularApp.atomic_model;
 public partial class AtomicModel
 {
     /// <summary>
+    /// Объект-заглушка для синхронизации потоков.
+    /// </summary>
+    private object _taskLocker = new();
+
+    /// <summary>
+    /// Поиск соседей для каждого атома системы/>.
+    /// </summary>
+    /// <param name="searchRadius">Радиус поиска (в нм).</param>
+    public void SearchAtomsNeighbours(double searchRadius)
+    {
+        var searchRadiusSquared = searchRadius * searchRadius;
+        Atoms.ForEach(atom => atom.Neighbours.Clear());
+        DistanceBetweenAtoms.Clear();
+        PairIndexes indexes;
+
+        // Расчёт расстояний между атомами системы.
+        Parallel.For(0, CountAtoms, i =>
+        {
+            var atomI = Atoms[i];
+            for (var j = i + 1; j < CountAtoms; j++)
+            {
+                var atomJ = Atoms[j];
+                var distanceSquared = SeparationSqured(atomI.Position, atomJ.Position, out _);
+                if (distanceSquared >= searchRadiusSquared)
+                    continue;
+
+                var distance = double.Sqrt(distanceSquared);
+                indexes = PairIndexes.GetIndexes(atomI, atomJ);
+
+                lock (_taskLocker)
+                {
+                    DistanceBetweenAtoms[indexes] = distance;
+                    atomI.Neighbours.Add(atomJ);
+                    atomJ.Neighbours.Add(atomI);
+                }
+            }
+        });
+
+        // Расчёт расстояний между соседями каждого атома системы.
+        Parallel.For(0, CountAtoms, n =>
+        {
+            var selAtom = Atoms[n];
+            for (var i = 0; i < selAtom.Neighbours.Count; i++)
+            for (var j = i + 1; j < selAtom.Neighbours.Count; j++)
+            {
+                var atomI = selAtom.Neighbours[i];
+                var atomJ = selAtom.Neighbours[j];
+                var distance = Separation(atomI.Position, atomJ.Position, out _);
+                indexes = PairIndexes.GetIndexes(atomI, atomJ);
+
+                lock (_taskLocker)
+                    DistanceBetweenAtoms[indexes] = distance;
+            }
+        });
+    }
+
+    /// <summary>
     /// Начальное смещение атомов.
     /// </summary>
     /// <param name="k">Коэффициент смещения.</param>
@@ -202,133 +259,7 @@ public partial class AtomicModel
     /// <returns>Коэффициент самодиффузии (м²/с)</returns>
     public double GetSelfDiffCoefFromAcf(double[] zt, double norm) => (zt.Sum() - (zt[0] + zt[zt.Length - 1]) / 2) * dt * norm / 3;
 
-    /// <summary>
-    /// Объект-заглушка для синхронизации потоков.
-    /// </summary>
-    private object _taskLocker = new();
-    
-    /// <summary>
-    /// Расчёт расстояний между соседями каждого атома системы в пределах (многопоточность).
-    /// </summary>
-    /// <param name="idxStart">Начальный индекс атома в массиве.</param>
-    /// <param name="idxEnd">Конечный индекс атома в массиве.</param>
-    private void PartDistanceJK(int idxStart, int idxEnd)
-    {
-        PairIndexes indexes;
-        for (var n = idxStart; n < idxEnd; n++)
-        {
-            var selAtom = Atoms[n];
-
-            for (var i = 0; i < selAtom.Neighbours.Count; i++)
-            for (var j = i + 1; j < selAtom.Neighbours.Count; j++)
-            {
-                var neighI = selAtom.Neighbours[i];
-                var neighJ = selAtom.Neighbours[j];
-                indexes = PairIndexes.GetIndexes(neighI, neighJ);
-                var distance = Separation(neighI.Position, neighJ.Position, out _);
-                lock (_taskLocker)
-                {
-                    if (!DistanceBetweenAtoms.ContainsKey(indexes)) DistanceBetweenAtoms.Add(indexes, distance);
-                    else DistanceBetweenAtoms[indexes] = distance;
-                }
-            }
-        }
-    }
-    
-    /// <summary>
-    /// Расчёт расстояний между атомами системы в пределах (многопоточность).
-    /// </summary>
-    /// <param name="searchRadiusSquared">Радиус поиска в квадрате (в нм).</param>
-    /// <param name="idxStart">Начальный индекс атома в массиве.</param>
-    /// <param name="idxEnd">Конечный индекс атома в массиве.</param>
-    private void PartDistanceIJ(double searchRadiusSquared, int idxStart, int idxEnd)
-    {
-        PairIndexes indexes;
-        for (var i = idxStart; i < idxEnd; i++)
-        {
-            var selAtom = Atoms[i];
-            for (var n = i + 1; n < CountAtoms; n++)
-            {
-                var a = Atoms[n];
-                var distanceSquared = SeparationSqured(selAtom.Position, a.Position, out _);
-                if (distanceSquared <= searchRadiusSquared)
-                {
-                    var radius = double.Sqrt(distanceSquared);
-                    indexes = PairIndexes.GetIndexes(selAtom, a);
-
-                    lock (_taskLocker)
-                    {
-                        DistanceBetweenAtoms.Add(indexes, radius);
-
-                        selAtom.Neighbours.Add(a);
-                        a.Neighbours.Add(selAtom);
-                    }
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Поиск соседей для каждого атома системы/>.
-    /// </summary>
-    /// <param name="searchRadius">Радиус поиска (в нм).</param>
-    public void SearchAtomsNeighbours(double searchRadius)
-    {
-        var searchRadiusSquared = searchRadius * searchRadius;
-        Atoms.ForEach(atom => atom.Neighbours.Clear());
-        DistanceBetweenAtoms.Clear();
-
-        var half = CountAtoms / 8;
-        var halfSize = new int[9] { 0, half, half * 2, half * 3, half * 4, half * 5, half * 6, half * 7, CountAtoms };
-
-        const int countTask = 8;
-        var tasks = new Task[countTask]
-        {
-            new Task(delegate { PartDistanceIJ(searchRadiusSquared, halfSize[0], halfSize[1]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceIJ(searchRadiusSquared, halfSize[1], halfSize[2]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceIJ(searchRadiusSquared, halfSize[2], halfSize[3]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceIJ(searchRadiusSquared, halfSize[3], halfSize[4]); }, TaskCreationOptions.AttachedToParent),
-
-            new Task(delegate { PartDistanceIJ(searchRadiusSquared, halfSize[4], halfSize[5]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceIJ(searchRadiusSquared, halfSize[5], halfSize[6]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceIJ(searchRadiusSquared, halfSize[6], halfSize[7]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceIJ(searchRadiusSquared, halfSize[7], halfSize[8]); }, TaskCreationOptions.AttachedToParent)
-        };
-
-        for (var t = 0; t < countTask; t++)
-            tasks[t].Start();
-
-        Task.WaitAll(tasks);
-
-        for (var t = 0; t < countTask; t++)
-            tasks[t].Dispose();
-
-        // Вычисляем расстояние для угловых частей потенциалов.
-        //AtomsDistanceJK.Clear();
-        CountDistanceIJ = DistanceBetweenAtoms.Count;
-        //if (SelectedPotential.GetPotentialType() == Potential.PotentialType.TwoParticle) return;
-
-        tasks = new Task[8]
-        {
-            new Task(delegate { PartDistanceJK(halfSize[0], halfSize[1]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceJK(halfSize[1], halfSize[2]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceJK(halfSize[2], halfSize[3]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceJK(halfSize[3], halfSize[4]); }, TaskCreationOptions.AttachedToParent),
-
-            new Task(delegate { PartDistanceJK(halfSize[4], halfSize[5]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceJK(halfSize[5], halfSize[6]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceJK(halfSize[6], halfSize[7]); }, TaskCreationOptions.AttachedToParent),
-            new Task(delegate { PartDistanceJK(halfSize[7], halfSize[8]); }, TaskCreationOptions.AttachedToParent)
-        };
-
-        for (var t = 0; t < countTask; t++)
-            tasks[t].Start();
-
-        Task.WaitAll(tasks);
-
-        for (var t = 0; t < countTask; t++)
-            tasks[t].Dispose();
-    }
+    public double GetSigma() => _potential.GetRadiusCutoff(FractionGe);
 
     /// <summary>
     /// Вычисление параметра решётки системы по закону Вегарда.

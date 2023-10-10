@@ -41,11 +41,11 @@ public partial class MainWindow
     private string InitInfoSystem()
     {
         return "Структура создана...\n" +
-               $"Тип атомов - {_atomic.AtomsType}\n" +
+               $"Сплав SnGe: доля Ge - {_atomic.FractionGe}\n" +
                $"Размер структуры (Nx/Ny) - {_atomic.Size}/{_atomic.Size}\n" +
                $"Размер структуры (Lx/Ly) - {(_atomic.BoxSize * 1e9).ToString("F3")}/{(_atomic.BoxSize * 1e9).ToString("F3")} нм\n" +
                $"Число атомов - {_atomic.CountAtoms}\n" +
-               $"Параметр решётки - {_atomic.Lattice * 1e9} нм\n" +
+               $"Параметр решётки - {_atomic.LatticeGeSn * 1e9} нм\n" +
                $"Кинетическая энергия - {_atomic.Ke.ToString("F5")} эВ\n" +
                $"Потенциальная энергия - {_atomic.Pe.ToString("F5")} эВ\n" +
                $"Полная энергия - {_atomic.Fe.ToString("F5")} эВ\n" +
