@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using MolecularApp.potentials;
 
 namespace MolecularApp.atomic_model;
@@ -10,11 +11,6 @@ public partial class AtomicModel
     /// Список атомов.
     /// </summary>
     public List<Atom> Atoms { get; }
-    
-    /// <summary>
-    /// Получить количество элементов в словаре которые хранят расстояния между атомами (исключает расстояние между соседями для каждого атома).
-    /// </summary>
-    public int CountDistanceIJ => DistanceBetweenAtoms.Count;
     
     /// <summary>
     /// Расстояния между атомами с учётом параметра обрезания выбранного потенциала.
@@ -39,31 +35,27 @@ public partial class AtomicModel
     /// <summary>
     /// Кинетическая энергия системы (эВ).
     /// </summary>
-    public double Ke => _ke / eV;
-
-    private double _ke;
+    public double Ke => Atoms.Sum(atom => atom.Weight * 0.0103645 * atom.Velocity.SquaredMagnitude() / 2d);
 
     /// <summary>
     /// Потенциальная энергия системы (эВ).
     /// </summary>
-    public double Pe => _pe / eV;
-
-    private double _pe;
+    public double Pe => Atoms.Sum(atom => _potential.PotentialEnergy(atom, DistanceBetweenAtoms));
 
     /// <summary>
     /// Полная энергия системы (эВ).
     /// </summary>
-    public double Fe => (_pe + _ke) / eV;
+    public double Fe => (Ke + Pe) / eV;
 
     /// <summary>
     /// Температура системы.
     /// </summary>
-    public double T => 2 * _ke / (3 * kB * CountAtoms);
+    public double T => 2 * Ke / (3 * kB * CountAtoms);
 
     /// <summary>
     /// Давление системы, рассчитанный через вириал (Па).
     /// </summary>
-    public double P1 => (_ke + _virial / CountAtoms) / (3 * V);
+    public double P1 => (Ke + _virial / CountAtoms) / (3 * V);
 
     private double _virial;
 
@@ -90,27 +82,10 @@ public partial class AtomicModel
     public double FractionSn => 1 - FractionGe;
     
     /// <summary>
-    /// Параметр решётки сплава SnGe.
+    /// Параметр решётки сплава SnGe (м).
     /// </summary>
     public double LatticeGeSn => Atom.GetLattice(AtomType.Ge) * FractionGe + Atom.GetLattice(AtomType.Sn) * FractionSn;
     
-    /// <summary>
-    /// Параметры потенциала для Ge (германий).
-    /// </summary>
-    private static TersoffPotential.PotentialParams ParamsGe => new(1769, 419.23, 0.31, 0.28, 9.01e-7, 106430, 15.65, 0.75627, -0.43884, 24.451, 17.047);
-
-    /// <summary>
-    /// Параметры потенциала для Sn (олово).
-    /// </summary>
-    private static TersoffPotential.PotentialParams ParamsSn => new(520.4677, 281.4117, 0.34, 0.30, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 15.5, 12.5649);
-    // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(526.46, 296.83, 0.34, 0.30, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 15.3, 12.56);
-    // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(2848, 658.62, 0.32, 0.28, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 22.5, 16.2);
-
-    /// <summary>
-    /// Класс потенциала.
-    /// </summary>
-    private readonly IPotential _potential;
-
     // Параметры симуляции.
     /// <summary>
     /// Величина временного шага (c).
@@ -121,32 +96,6 @@ public partial class AtomicModel
     /// Текущий временной шаг.
     /// </summary>
     public int CurrentStep { get; set; }
-
-    // Константы.
-    /// <summary>
-    /// 1 эВ в Дж.
-    /// </summary>
-    private const double eV = 1.602176634e-19;
-
-    /// <summary>
-    /// Постоянная Больцмана (Дж/К).
-    /// </summary>
-    private const double kB = 1.380649e-23;
-
-    /// <summary>
-    /// Генератор случайных чисел.
-    /// </summary>
-    private static Random Rnd => new(Guid.NewGuid().GetHashCode());
-
-    /// <summary>
-    /// Список начальных координат атомов.
-    /// </summary>
-    private List<XYZ> _rt0;
-
-    /// <summary>
-    /// Список скоростей атомв в разные моменты времени.
-    /// </summary>
-    private List<List<XYZ>> _vtList;
 
     /// <summary>
     /// Число отсчётов.
@@ -162,7 +111,32 @@ public partial class AtomicModel
     /// Шаг повторений подсчёта.
     /// </summary>
     public int StepRepeatAcf;
+    
+    // Константы.
+    private const double eV = 1.602176634e-19; // 1 эВ в Дж.
+    private const double kB = 1.380649e-23; // Постоянная Больцмана (Дж/К).
 
+    /// <summary>
+    /// Параметры потенциала для Ge (германий).
+    /// </summary>
+    private static TersoffParams ParamsGe => new(1769, 419.23, 0.31, 0.28, 9.01e-7, 106430, 15.65, 0.75627, -0.43884, 24.451, 17.047);
+
+    /// <summary>
+    /// Параметры потенциала для Sn (олово).
+    /// </summary>
+    private static TersoffParams ParamsSn => new(520.4677, 281.4117, 0.34, 0.30, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 15.5, 12.5649);
+    // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(526.46, 296.83, 0.34, 0.30, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 15.3, 12.56);
+    // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(2848, 658.62, 0.32, 0.28, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 22.5, 16.2);
+
+    /// <summary>
+    /// Класс потенциала.
+    /// </summary>
+    private readonly IPotential _potential;
+    private readonly Random _rnd;
+    private Dictionary<PairIndexes, double> _distIJAround;
+    private List<XYZ> _rt0;
+    private List<List<XYZ>> _vtList;
+    
     /// <summary>
     /// Создание атомной модели.
     /// </summary>
@@ -170,6 +144,7 @@ public partial class AtomicModel
     /// <param name="fraction"></param>
     public AtomicModel(int size, double fraction)
     {
+        
         Atoms = new List<Atom>();
         DistanceBetweenAtoms = new Dictionary<PairIndexes, double>();
         Size = size;
@@ -178,13 +153,13 @@ public partial class AtomicModel
 
         // Выбор типа решётки.
         CreateDiamondSystem();
-
         // Выбор типа потенциала.
         _potential = new TersoffPotential(ParamsGe, ParamsSn);
-
         // Начальная инициализация параметров.
         InitCalculation();
-
+        
+        _rnd = new Random(Guid.NewGuid().GetHashCode());
+        _distIJAround = new Dictionary<PairIndexes, double>();
         _rt0 = GetPosNpAtoms();
         _vtList = new List<List<XYZ>> { GetVelocitiesAtoms() };
     }
@@ -213,10 +188,10 @@ public partial class AtomicModel
         var countSwapAtoms = (int)(CountAtoms * FractionSn);
         for (var i = 0; i < countSwapAtoms; i++)
         {
-            idx = Rnd.Next(0, CountAtoms);
-            var atom = Atoms[idx];
-            if (atom.Type != AtomType.Sn)
-                atom.Type = AtomType.Sn;
+            idx = _rnd.Next(0, CountAtoms);
+            if (Atoms[idx].Type != AtomType.Sn)
+                Atoms[idx].Type = AtomType.Sn;
+            else i--;
         }
     }
 }

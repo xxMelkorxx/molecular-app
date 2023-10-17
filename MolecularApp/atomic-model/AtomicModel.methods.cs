@@ -72,9 +72,9 @@ public partial class AtomicModel
     {
         Atoms.ForEach(atom =>
         {
-            var displacement = (-1 * XYZ.One + 2 * new XYZ(Rnd.NextDouble(), Rnd.NextDouble(), Rnd.NextDouble())) * k * LatticeGeSn;
+            var displacement = (-1 * XYZ.One + 2 * new XYZ(_rnd.NextDouble(), _rnd.NextDouble(), _rnd.NextDouble())) * k * LatticeGeSn;
             Flux = XYZ.Zero;
-            atom.Position = Periodic(atom.Position + displacement, atom.Velocity * atom.Weight);
+            atom.Position = Periodic(atom.Position + displacement);
             atom.PositionNp += displacement;
         });
     }
@@ -88,8 +88,8 @@ public partial class AtomicModel
         const double pi2 = 2 * double.Pi;
         Atoms.ForEach(atom =>
         {
-            var r1 = Rnd.NextDouble();
-            var r2 = Rnd.NextDouble();
+            var r1 = _rnd.NextDouble();
+            var r2 = _rnd.NextDouble();
             atom.Velocity = new XYZ(
                 double.Sin(pi2 * r1) * double.Cos(pi2 * r2),
                 double.Sin(pi2 * r1) * double.Sin(pi2 * r2),

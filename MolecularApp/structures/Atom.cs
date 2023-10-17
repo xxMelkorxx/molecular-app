@@ -82,8 +82,7 @@ public class Atom
     public static double GetWeightAtom(AtomType type) => type switch
     {
         AtomType.Sn => 118.71 * 1.66054e-27,
-        AtomType.Ge => 72.63 * 1.66054e-27,
-        _ => throw new ArgumentException()
+        AtomType.Ge => 72.63 * 1.66054e-27
     };
 
     /// <summary>
@@ -92,7 +91,6 @@ public class Atom
     public static double GetLattice(AtomType type) => type switch
     {
         AtomType.Sn => 0.54307e-9,
-        AtomType.Ge => 0.566e-9,
-        _ => throw new ArgumentException()
+        AtomType.Ge => 0.566e-9
     };
 }

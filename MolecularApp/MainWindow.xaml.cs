@@ -199,7 +199,7 @@ public partial class MainWindow
         var T = NudTemperature.Value;
         var stepNorm = NudStepNorm.Value;
 
-        _atomic.dt = (NudTimeStep.Value ?? 0.01) * 1e-12;
+        _atomic.dt = (NudTimeStep.Value ?? 0.01) * 1.018e-1 * 1e-12;
         _atomic.CountNumberAcf = (NudCountNumberAcf.Value ?? 150) + 1;
         _atomic.CountRepeatAcf = NudCountRepeatAcf.Value ?? 5;
         _atomic.StepRepeatAcf = NudStepRepeatAcf.Value ?? 10;
@@ -274,7 +274,7 @@ public partial class MainWindow
             }
 
             // Расчёт шага методом Верле.
-            _atomic.Verlet();
+            // _atomic.Verlet();
 
             // Проведение перенормировки скоростей, если она включено.
             if (_isNormSpeeds && i % stepNorm == 0)
