@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace MolecularApp.atomic_model;
@@ -12,10 +11,8 @@ public partial class AtomicModel
     /// </summary>
     public void InitCalculation()
     {
-        // Рассчёт радиуса поиска соседей с учётом величины сдвига при расчёте ускорений (методом трёхточечного дифференцирования).
-        var searchRadius = _potential.GetRadiusCutoff(FractionGe) + 1.2 * (1e-3 * LatticeGeSn);
         // Рассчёт соседей для каждого атома.
-        SearchAtomsNeighbours(searchRadius);
+        SearchAtomsNeighbours();
         // Начальный подсчёт ускорений атомов.
         Accels();
     }
@@ -23,9 +20,9 @@ public partial class AtomicModel
     /// <summary>
     /// Алгоритм Верле для вычисления координат и скоростей атомов на временном шаге.
     /// </summary>
-    /// <param name="searchRadius">Радиус поиска (в нм).</param>
-    public void Verlet(double searchRadius)
+    public void Verlet()
     {
+        // Расчёт новых положений атомов.
         Atoms.ForEach(atom =>
         {
             var newPos = atom.Velocity * dt + 0.5 * atom.Acceleration * dt * dt;
@@ -33,7 +30,7 @@ public partial class AtomicModel
             atom.PositionNp += newPos;
         });
         // Поиск соседей атомов после их сдвига.
-        SearchAtomsNeighbours(searchRadius);
+        SearchAtomsNeighbours();
         // Расчёт новых скоростей и ускорений.
         Atoms.ForEach(atom => atom.Velocity = 0.5 * atom.Acceleration * dt);
         Accels();
@@ -41,48 +38,93 @@ public partial class AtomicModel
     }
 
     /// <summary>
+    /// Объект-заглушка для синхронизации потоков.
+    /// </summary>
+    private object _taskLocker = new();
+
+    /// <summary>
+    /// Поиск соседей для каждого атома системы;
+    /// вычисление <seealso cref="DistanceBetweenAtoms"/>.
+    /// </summary>
+    public void SearchAtomsNeighbours()
+    {
+        var searchRadius = _potential.GetRadiusCutoff(FractionGe) + 1.2 * (1e-3 * LatticeGeSn);
+        var searchRadiusSquared = searchRadius * searchRadius;
+
+        Atoms.ForEach(a => a.Neighbours.Clear());
+        DistanceBetweenAtoms.Clear();
+
+        // Расчёт расстояний между атомами системы в пределах (многопоточность).
+        Parallel.For(0, CountAtoms, i =>
+        {
+            var atomI = Atoms[i];
+            for (var j = i + 1; j < CountAtoms; j++)
+            {
+                var atomJ = Atoms[j];
+                var distanceSquared = SeparationSqured(atomI.Position, atomJ.Position, out _);
+                if (distanceSquared <= searchRadiusSquared)
+                {
+                    var radius = Math.Sqrt(distanceSquared);
+                    var indexes = PairIndexes.GetIndexes(atomI, atomJ);
+
+                    lock (_taskLocker)
+                    {
+                        DistanceBetweenAtoms.Add(indexes, radius);
+                        atomI.Neighbours.Add(atomJ);
+                        atomJ.Neighbours.Add(atomI);
+                    }
+                }
+            }
+        });
+
+        // Расчёт расстояний между соседями каждого атома системы в пределах (многопоточность);
+        Parallel.For(0, CountAtoms, n =>
+        {
+            var selAtom = Atoms[n];
+            for (var i = 0; i < selAtom.Neighbours.Count; i++)
+            for (var j = i + 1; j < selAtom.Neighbours.Count; j++)
+            {
+                var neighI = selAtom.Neighbours[i];
+                var neighJ = selAtom.Neighbours[j];
+                var indexes = PairIndexes.GetIndexes(neighI, neighJ);
+                var distance = Separation(neighI.Position, neighJ.Position, out _);
+
+                lock (_taskLocker)
+                    DistanceBetweenAtoms[indexes] = distance;
+            }
+        });
+    }
+
+    /// <summary>
     /// Подсчёт ускорения системы атомов.
     /// </summary>
     public void Accels()
     {
-        Parallel.For(0, CountAtoms, i =>
-        {
-            // Считаем, что при сдивиге у атома соседи не меняются.
-            _distIJAround.Clear();
-            
-            var delta = 1e-3 * LatticeGeSn;
-            var force = ThreePointsDiffAtom(Atoms[i], delta, ref _distIJAround);
-
-            // эВ -> Дж -> а.е.м. * нм2/пс2 => эВ*96.352
-            const double eVToDzh = 96.4830626;
-            force = new XYZ(-force.X, -force.Y, -force.Z) * eVToDzh;
-
-            Atoms[i].Acceleration = force / Atoms[i].Weight;
-        });
+        Parallel.ForEach(Atoms, atom => atom.Acceleration = ThreePointsDiffAtom(atom) / atom.Weight);
     }
 
     /// <summary>
     /// Расчёт производной потенциальной энергии по формуле трехточечного дифференцирования.
     /// </summary>
-    /// <param name="a">Выбранный атом.</param>
-    /// <param name="delta">Сдвиг атома по координате.</param>
-    /// <param name="distIJAround">Словарь, в который записываются расстояния между атомами.</param>
+    /// <param name="atom">Выбранный атом.</param>
+    /// <param name="eps"></param>
     /// <returns></returns>
-    private XYZ ThreePointsDiffAtom(Atom a, double delta, ref Dictionary<PairIndexes, double> distIJAround)
+    private XYZ ThreePointsDiffAtom(Atom atom, double eps = 1e-3)
     {
+        var delta = eps * LatticeGeSn;
         double potentialLeft, potentialRight;
         XYZ force;
 
-        potentialRight = PotentialEnergyAtomShifted(a, Periodic(a.Position + new XYZ(delta, 0, 0)), ref distIJAround);
-        potentialLeft = PotentialEnergyAtomShifted(a, Periodic(a.Position - new XYZ(delta, 0, 0)), ref distIJAround);
+        potentialRight = PotentialEnergyAtomShifted(atom, Periodic(atom.Position + new XYZ(delta, 0, 0)));
+        potentialLeft = PotentialEnergyAtomShifted(atom, Periodic(atom.Position - new XYZ(delta, 0, 0)));
         force.X = potentialRight - potentialLeft;
 
-        potentialRight = PotentialEnergyAtomShifted(a, Periodic(a.Position + new XYZ(0, delta, 0)), ref distIJAround);
-        potentialLeft = PotentialEnergyAtomShifted(a, Periodic(a.Position - new XYZ(0, delta, 0)), ref distIJAround);
+        potentialRight = PotentialEnergyAtomShifted(atom, Periodic(atom.Position + new XYZ(0, delta, 0)));
+        potentialLeft = PotentialEnergyAtomShifted(atom, Periodic(atom.Position - new XYZ(0, delta, 0)));
         force.Y = potentialRight - potentialLeft;
 
-        potentialRight = PotentialEnergyAtomShifted(a, Periodic(a.Position + new XYZ(0, 0, delta)), ref distIJAround);
-        potentialLeft = PotentialEnergyAtomShifted(a, Periodic(a.Position - new XYZ(0, 0, delta)), ref distIJAround);
+        potentialRight = PotentialEnergyAtomShifted(atom, Periodic(atom.Position + new XYZ(0, 0, delta)));
+        potentialLeft = PotentialEnergyAtomShifted(atom, Periodic(atom.Position - new XYZ(0, 0, delta)));
         force.Z = potentialRight - potentialLeft;
 
         return force / (2 * delta);
@@ -91,48 +133,32 @@ public partial class AtomicModel
     /// <summary>
     /// Подсчёт потенциальной энергии атома и его окружения при сдвиге.
     /// </summary>
-    /// <param name="a">Выбранный атом.</param>
+    /// <param name="atom">Выбранный атом.</param>
     /// <param name="shiftedPosition">Сдвинутая координата атома.</param>
-    /// <param name="distIJAround">Словарь, в который записываются расстояния между атомами.</param>
     /// <returns></returns>
-    private double PotentialEnergyAtomShifted(Atom a, XYZ shiftedPosition, ref Dictionary<PairIndexes, double> distIJAround)
+    private double PotentialEnergyAtomShifted(Atom atom, XYZ shiftedPosition)
     {
-        RecalculateDistanceToNeighbours(shiftedPosition, a, ref distIJAround);
-        return _potential.PotentialDerivative(a, distIJAround);
-    }
-
-    /// <summary>
-    /// Подсчитывает расстояния между атомами, а именно - выбранного атома, его первый и вторых соседей;
-    /// считаем что при сдвиге атома его соседи не изменяются!
-    /// </summary>
-    /// <param name="shiftedPosition">Сдвинутая координата атома.</param>
-    /// <param name="atom">Сдвигаемый атом.</param>
-    /// <param name="distanceIJAroundSelAtom">Словарь, в который записываются расстояния между атомами.</param>
-    private void RecalculateDistanceToNeighbours(XYZ shiftedPosition, Atom atom, ref Dictionary<PairIndexes, double> distanceIJAroundSelAtom)
-    {
-        for (var n = 0; n < atom.Neighbours.Count; n++)
+        var atomsDistances = new Dictionary<PairIndexes, double>();
+        foreach (var neigh in atom.Neighbours)
         {
-            var neigh = atom.Neighbours[n];
-            var distance = Separation(shiftedPosition, neigh.Position, out _);
-            distanceIJAroundSelAtom[PairIndexes.GetIndexes(atom, neigh)] = distance;
+            var indexes = PairIndexes.GetIndexes(atom, neigh);
+            atomsDistances[indexes] = Separation(shiftedPosition, neigh.Position, out _);
 
-            for (var k = 0; k < neigh.Neighbours.Count; k++)
+            foreach (var neighK in neigh.Neighbours)
             {
-                var neighK = neigh.Neighbours[k];
-                if (neighK.Index == atom.Index) continue;
-
-                var indexes = PairIndexes.GetIndexes(neigh, neighK);
-                distanceIJAroundSelAtom[indexes] = DistanceBetweenAtoms[indexes];
+                if (neighK.Index == atom.Index)
+                    continue;
+                indexes = PairIndexes.GetIndexes(neigh, neighK);
+                atomsDistances[indexes] = DistanceBetweenAtoms[indexes];
             }
         }
 
         // Вычисляем расстояние для угловых частей потенциалов.
-        RecalcDistanceJK(shiftedPosition, atom, atom, ref distanceIJAroundSelAtom);
-        for (var n = 0; n < atom.Neighbours.Count; n++)
-        {
-            var neigh = atom.Neighbours[n];
-            RecalcDistanceJK(shiftedPosition, atom, neigh, ref distanceIJAroundSelAtom);
-        }
+        RecalcDistanceJK(shiftedPosition, atom, atom, ref atomsDistances);
+        foreach (var neigh in atom.Neighbours)
+            RecalcDistanceJK(shiftedPosition, atom, neigh, ref atomsDistances);
+
+        return _potential.PotentialDerivative(atom, atomsDistances);
     }
 
     /// <summary>
@@ -141,8 +167,8 @@ public partial class AtomicModel
     /// <param name="shiftedPosition">Сдвинутая координата атома.</param>
     /// <param name="shiftedAtom">Сдвигаемый атом.</param>
     /// <param name="selAtom">Выбранный атом.</param>
-    /// <param name="atomsDistanceJKAround">Словарь, в который записываются расстояния между соседями выбранного атома.</param>
-    private void RecalcDistanceJK(XYZ shiftedPosition, Atom shiftedAtom, Atom selAtom, ref Dictionary<PairIndexes, double> atomsDistanceJKAround)
+    /// <param name="distancesIJ">Словарь, в который записываются расстояния между соседями выбранного атома.</param>
+    private void RecalcDistanceJK(XYZ shiftedPosition, Atom shiftedAtom, Atom selAtom, ref Dictionary<PairIndexes, double> distancesIJ)
     {
         for (var i = 0; i < selAtom.Neighbours.Count; i++)
         for (var j = i + 1; j < selAtom.Neighbours.Count; j++)
@@ -159,7 +185,7 @@ public partial class AtomicModel
             else
                 distance = DistanceBetweenAtoms[indexes];
 
-            atomsDistanceJKAround[indexes] = distance;
+            distancesIJ[indexes] = distance;
         }
     }
 

@@ -1,69 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace MolecularApp.atomic_model;
 
 public partial class AtomicModel
 {
-    /// <summary>
-    /// Объект-заглушка для синхронизации потоков.
-    /// </summary>
-    private object _taskLocker = new();
-
-    /// <summary>
-    /// Поиск соседей для каждого атома системы/>.
-    /// </summary>
-    /// <param name="searchRadius">Радиус поиска (в нм).</param>
-    public void SearchAtomsNeighbours(double searchRadius)
-    {
-        var searchRadiusSquared = searchRadius * searchRadius;
-        Atoms.ForEach(atom => atom.Neighbours.Clear());
-        DistanceBetweenAtoms.Clear();
-        PairIndexes indexes;
-
-        // Расчёт расстояний между атомами системы.
-        Parallel.For(0, CountAtoms, i =>
-        {
-            var atomI = Atoms[i];
-            for (var j = i + 1; j < CountAtoms; j++)
-            {
-                var atomJ = Atoms[j];
-                var distanceSquared = SeparationSqured(atomI.Position, atomJ.Position, out _);
-                if (distanceSquared >= searchRadiusSquared)
-                    continue;
-
-                var distance = double.Sqrt(distanceSquared);
-                indexes = PairIndexes.GetIndexes(atomI, atomJ);
-
-                lock (_taskLocker)
-                {
-                    DistanceBetweenAtoms[indexes] = distance;
-                    atomI.Neighbours.Add(atomJ);
-                    atomJ.Neighbours.Add(atomI);
-                }
-            }
-        });
-
-        // Расчёт расстояний между соседями каждого атома системы.
-        Parallel.For(0, CountAtoms, n =>
-        {
-            var selAtom = Atoms[n];
-            for (var i = 0; i < selAtom.Neighbours.Count; i++)
-            for (var j = i + 1; j < selAtom.Neighbours.Count; j++)
-            {
-                var atomI = selAtom.Neighbours[i];
-                var atomJ = selAtom.Neighbours[j];
-                var distance = Separation(atomI.Position, atomJ.Position, out _);
-                indexes = PairIndexes.GetIndexes(atomI, atomJ);
-
-                lock (_taskLocker)
-                    DistanceBetweenAtoms[indexes] = distance;
-            }
-        });
-    }
-
     /// <summary>
     /// Начальное смещение атомов.
     /// </summary>

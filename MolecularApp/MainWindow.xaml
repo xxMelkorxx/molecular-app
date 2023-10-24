@@ -32,10 +32,10 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
-                <WpfPlot Grid.Row="0" Name="ChartEnergy" FontFamily="Roboto Mono" />
-                <WpfPlot Grid.Row="1" Name="ChartRadDist" FontFamily="Roboto Mono" />
-                <WpfPlot Grid.Row="2" Name="ChartMsd" FontFamily="Roboto Mono" />
-                <WpfPlot Grid.Row="3" Name="ChartAcfSpeed" FontFamily="Roboto Mono" />
+                <WpfPlot Grid.Row="0" Name="Chart1" FontFamily="Roboto Mono" />
+                <WpfPlot Grid.Row="1" Name="Chart3" FontFamily="Roboto Mono" />
+                <WpfPlot Grid.Row="2" Name="Chart2" FontFamily="Roboto Mono" />
+                <WpfPlot Grid.Row="3" Name="Chart4" FontFamily="Roboto Mono" />
             </Grid>
         </GroupBox>
 
@@ -298,8 +298,7 @@
         <cm:BackgroundWorker x:Key="BackgroundWorkerCreateModel"
                              WorkerReportsProgress="True"
                              DoWork="OnBackgroundWorkerDoWorkCreateModel"
-                             RunWorkerCompleted="OnBackgroundWorkerRunWorkerCompletedCreateModel"
-                             ProgressChanged="OnBackgroundWorkerProgressChangedCreateModel" />
+                             RunWorkerCompleted="OnBackgroundWorkerRunWorkerCompletedCreateModel" />
         <cm:BackgroundWorker x:Key="BackgroundWorkerCalculation"
                              WorkerReportsProgress="True"
                              WorkerSupportsCancellation="True"

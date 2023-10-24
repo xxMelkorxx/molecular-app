@@ -28,42 +28,73 @@ public class TersoffPotential : IPotential
     public double GetRadiusCutoff(double fraction) => fraction >= 0.5 ? _paramsGe.S : _paramsSn.S;
 
     /// <summary>
+    /// Межатомная сила взаимодействия в потенциале (Дж * м).
+    /// </summary>
+    /// <param name="selAtom"></param>
+    /// <param name="atomsDistances"></param>
+    /// <returns></returns>
+    public double PotentialDerivative(Atom selAtom, Dictionary<PairIndexes, double> atomsDistances) =>
+        PotentialEnergy(selAtom, atomsDistances) + selAtom.Neighbours.Sum(atom => PotentialEnergy(atom, atomsDistances));
+
+    /// <summary>
     /// Потенциальная энергия (Дж).
     /// </summary>
-    /// <param name="atomI"></param>
-    /// <param name="distancesIJ"></param>
+    /// <param name="selAtom"></param>
+    /// <param name="atomsDistances"></param>
     /// <returns></returns>
-    public double PotentialEnergy(Atom atomI, Dictionary<PairIndexes, double> distancesIJ)
+    public double PotentialEnergy(Atom selAtom, Dictionary<PairIndexes, double> atomsDistances)
     {
         var energy = 0d;
-        for (var j = 0; j < atomI.Neighbours.Count; j++)
+        for (var j = 0; j < selAtom.Neighbours.Count; j++)
         {
-            var atomJ = atomI.Neighbours[j];
+            var neigh = selAtom.Neighbours[j];
 
-            var pij = (atomI.Type == atomJ.Type) ? (atomI.Type == AtomType.Ge ? _paramsGe : _paramsSn) : _paramsSnGe;
-            var pi = atomI.Type == AtomType.Ge ? _paramsGe : _paramsSn;
+            var paramsIJ = (selAtom.Type == neigh.Type) ? (selAtom.Type == AtomType.Ge ? _paramsGe : _paramsSn) : _paramsSnGe;
+            var paramsI = selAtom.Type == AtomType.Ge ? _paramsGe : _paramsSn;
+            var rij = atomsDistances[PairIndexes.GetIndexes(selAtom, neigh)];
 
-            var rij = distancesIJ[PairIndexes.GetIndexes(atomI, atomJ)];
-            if (rij > pij.S)
-                return 0;
+            if (rij < paramsIJ.S)
+            {
+                var dzetaIJ = DzetaIJ(selAtom, neigh, paramsI, atomsDistances, rij);
+                var bij = Math.Pow(1 + Math.Pow(paramsI.b * dzetaIJ, paramsI.n), -1d / (2 * paramsI.n));
 
-            var dzeta = DzetaIJ(pi, atomI, distancesIJ, rij, j);
-            var bij = Math.Pow(1 + Math.Pow(pi.b * dzeta, pi.n), -1d / (2 * pi.n));
-
-            energy += Fc(pij, rij) * (Fa(pij, rij) + bij * Fr(pij, rij));
+                energy += Fc(paramsIJ, rij) * (Fa(paramsIJ, rij) + bij * Fr(paramsIJ, rij));
+            }
         }
 
         return energy / 2;
     }
 
+    private double DzetaIJ(Atom atomI, Atom atomJ, TersoffParams p, IReadOnlyDictionary<PairIndexes, double> atomsDistances, double rij)
+    {
+        var dzetaIJ = 0d;
+        for (var k = 0; k < atomI.Neighbours.Count; k++)
+        {
+            var atomK = atomI.Neighbours[k];
+            if (atomK.Index == atomJ.Index) continue;
+
+            var rik = atomsDistances[PairIndexes.GetIndexes(atomI, atomK)];
+            var paramsIK = (atomI.Type == atomK.Type) ? (atomI.Type == AtomType.Ge ? _paramsGe : _paramsSn) : _paramsSnGe;
+
+            if (rik < paramsIK.S)
+            {
+                var rjk = atomsDistances[PairIndexes.GetIndexes(atomJ, atomK)];
+                var gijk = 1d + p.c * p.c / (p.d * p.d) - p.c * p.c / (p.d * p.d + Math.Pow(p.h - CosOijk(rij, rik, rjk), 2));
+                dzetaIJ += Fc(paramsIK, rik) * gijk;
+            }
+        }
+
+        return dzetaIJ;
+    }
+
     /// <summary>
-    /// Межатомная сила взаимодействия в потенциале (Дж * м).
+    /// Косинус угла между связями i-j и i-k, вычисляемый по теореме косинусов.
     /// </summary>
-    /// <param name="selAtom"></param>
-    /// <param name="distancesIJ"></param>
+    /// <param name="rij">Расстояние между i-j атомами</param>
+    /// <param name="rik">Расстояние между i-k атомами</param>
+    /// <param name="rjk">Расстояние между j-k атомами</param>
     /// <returns></returns>
-    public double PotentialDerivative(Atom selAtom, Dictionary<PairIndexes, double> distancesIJ) => 
-        PotentialEnergy(selAtom, distancesIJ) + selAtom.Neighbours.Sum(atom => PotentialEnergy(atom, distancesIJ));
+    private static double CosOijk(double rij, double rik, double rjk) => (rik * rik + rij * rij - rjk * rjk) / (2d * rij * rik);
 
     /// <summary>
     /// Функция обрезания.
@@ -88,40 +119,4 @@ public class TersoffPotential : IPotential
     /// <param name="rij">Расстояние между атомами</param>
     /// <returns></returns>
     private static double Fr(TersoffParams p, double rij) => -p.B * Math.Exp(-p.l2 * rij);
-
-    /// <summary>
-    /// Косинус угла между связями i-j и i-k, вычисляемый по теореме косинусов.
-    /// </summary>
-    /// <param name="rij">Расстояние между i-j атомами</param>
-    /// <param name="rik">Расстояние между i-k атомами</param>
-    /// <param name="rjk">Расстояние между j-k атомами</param>
-    /// <returns></returns>
-    private static double Cos(double rij, double rik, double rjk) => (rik * rik + rij * rij - rjk * rjk) / (2d * rij * rik);
-
-    private double DzetaIJ(TersoffParams p, Atom atomI, Dictionary<PairIndexes, double> distancesIJ, double rij, int idxJ)
-    {
-        var dzeta = 0d;
-        var atomJ = atomI.Neighbours[idxJ];
-        for (var k = 0; k < atomI.Neighbours.Count; k++)
-        {
-            if (k == idxJ) continue;
-            var atomK = atomI.Neighbours[k];
-
-            var rik = distancesIJ[PairIndexes.GetIndexes(atomI, atomK)];
-            var pik = (atomI.Type == atomK.Type) ? (atomI.Type == AtomType.Ge ? _paramsGe : _paramsSn) : _paramsSnGe;
-
-            if (rik > pik.S)
-                return 0;
-
-            var rjk = distancesIJ[PairIndexes.GetIndexes(atomJ, atomK)];
-
-            var c2 = p.c * p.c;
-            var d2 = p.d * p.d;
-            var cos = 1.0 + c2 / d2 - c2 / (d2 + Math.Pow(p.h - Cos(rij, rik, rjk), 2));
-
-            dzeta += Fc(pik, rik) * cos;
-        }
-
-        return dzeta;
-    }
 }
