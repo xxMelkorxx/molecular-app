@@ -1,13 +1,12 @@
-﻿using ScottPlot;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Drawing;
 using System.Windows;
 using System.Windows.Threading;
+using ScottPlot;
 using MolecularApp.atomic_model;
-using MolecularApp.potentials;
 using MolecularApp.scene_manager;
 
 namespace MolecularApp;
@@ -25,6 +24,7 @@ public partial class MainWindow
     private bool _isDisplacement, _isSnapshot, _isNormSpeeds, _isNewSystem;
     private double _yMaxRb;
     private int _initStep;
+    private AtomType _firstAtom, _secondAtom;
 
     public MainWindow()
     {
@@ -64,7 +64,8 @@ public partial class MainWindow
 
         _params["size"] = NudSize.Value; // размер расчётной ячейки.
         _params["displacement"] = NudDisplacement.Value; // коэффициент начального смещения.
-        _params["fraction"] = 0.5;
+        _params["firstFraction"] = NudFirstFraction.Value;
+        _params["secondFraction"] = NudSecondFraction.Value;
         // Инициализация массивов энергий системы.
         _params["ke"] = new List<double>();
         _params["pe"] = new List<double>();
@@ -96,7 +97,11 @@ public partial class MainWindow
     private void OnBackgroundWorkerDoWorkCreateModel(object sender, DoWorkEventArgs e)
     {
         // Инициализация системы.
-        _atomic = new AtomicModel((int)_params["size"], (double)_params["fraction"]);
+        _atomic = new AtomicModel((int)_params["size"], _firstAtom, _secondAtom)
+        {
+            FisrtFraction = (double)_params["firstFraction"],
+            SecondFraction = (double)_params["secondFraction"]
+        };
         _initStep = _atomic.CurrentStep;
         // Применение случайного смещения для атомов.
         if (_isDisplacement)
@@ -125,7 +130,7 @@ public partial class MainWindow
             _positionsAtomsList = new List<List<XYZ>> { _atomic.GetPosAtoms() };
 
             // Отрисовка атомов на сцене.
-            _scene.CreateScene(_positionsAtomsList.First(), _atomic.BoxSize, _atomic.GetSigma() / 10d);
+            _scene.CreateScene(_positionsAtomsList.First(), _atomic.BoxSize, _atomic.GetSigma() / 2d);
 
             // Вывод начальной информации.
             RtbOutputInfo.AppendText(InitInfoSystem());
@@ -135,7 +140,7 @@ public partial class MainWindow
             _yMaxRb = rd.Max(p => p.Y);
             Chart3.Plot.Clear();
             Chart3.Plot.AddSignalXY(rd.Select(p => p.X * 1e9).ToArray(), rd.Select(p => p.Y).ToArray(), Color.Blue, "Радиальное распределение");
-            Chart3.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.LatticeGeSn * 1e9 * 0.726, yMin: 0, yMax: _yMaxRb);
+            Chart3.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.SystemLattice * 1e9 * 0.726, yMin: 0, yMax: _yMaxRb);
             Chart3.Plot.Legend(location: Alignment.UpperRight);
             Chart3.Refresh();
 
@@ -229,11 +234,10 @@ public partial class MainWindow
         var snapshotStep = (int)_params["snapshotStep"];
 
         _atomic.CurrentStep = 1;
-        if (_isNormSpeeds) // Начальная перенормировка скоростей, если она включено.
-        {
+        
+        // Начальная перенормировка скоростей, если она включено.
+        if (_isNormSpeeds)
             _atomic.InitVelocityNormalization((double)_params["T"]);
-            _atomic.PulseZeroing();
-        }
 
         // Запуск моделирования.
         for (var i = _initStep; i - _initStep < countStep; i++)
@@ -246,9 +250,11 @@ public partial class MainWindow
                 return;
             }
 
-            _atomic.Verlet(); // Расчёт шага методом Верле.
+            // Расчёт шага методом Верле.
+            _atomic.Verlet(); 
 
-            if (_isNormSpeeds && i % (int)_params["stepNorm"] == 0) // Проведение перенормировки скоростей, если она включено.
+            // Проведение перенормировки скоростей, если она включено.
+            if (_isNormSpeeds && i % (int)_params["stepNorm"] == 0)
                 _atomic.VelocityNormalization((double)_params["T"]);
 
             ((List<double>)_params["ke"]).Add(_atomic.Ke);
@@ -274,7 +280,7 @@ public partial class MainWindow
                         rd.Select(p => p.Y).ToArray(),
                         color: Color.Blue, label: "Радиальное распределение"
                     );
-                    Chart3.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.LatticeGeSn * 1e9 * 0.726, yMin: 0, yMax: _yMaxRb);
+                    Chart3.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.SystemLattice * 1e9 * 0.726, yMin: 0, yMax: _yMaxRb);
                     Chart3.Plot.Legend(location: Alignment.UpperRight);
                     Chart3.Refresh();
                 });

@@ -5,8 +5,9 @@ namespace MolecularApp;
 
 public enum AtomType
 {
-    Sn,
-    Ge
+    Si,
+    Ge,
+    Sn
 }
 
 public class Atom
@@ -41,8 +42,9 @@ public class Atom
     /// </summary>
     public double Weight => Type switch
     {
-        AtomType.Sn => 118.71 * 1.66054e-27,
+        AtomType.Si => 28.085 * 1.66054e-27,
         AtomType.Ge => 72.63 * 1.66054e-27,
+        AtomType.Sn => 118.71 * 1.66054e-27,
         _ => throw new ArgumentNullException()
     };
 
@@ -74,6 +76,17 @@ public class Atom
     }
 
     /// <summary>
+    /// Параметр решётки (м)
+    /// </summary>
+    public static double GetLattice(AtomType type) => type switch
+    {
+        AtomType.Si => 0.54307e-9,
+        AtomType.Ge => 0.566e-9,
+        AtomType.Sn => 0.64892e-9,
+        _ => throw new ArgumentNullException()
+    };
+
+    /// <summary>
     /// Получение массы атома.
     /// </summary>
     /// <param name="type"></param>
@@ -81,18 +94,9 @@ public class Atom
     /// <exception cref="ArgumentNullException"></exception>
     public static double GetWeightAtom(AtomType type) => type switch
     {
-        AtomType.Sn => 118.71 * 1.66054e-27,
+        AtomType.Si => 28.085 * 1.66054e-27,
         AtomType.Ge => 72.63 * 1.66054e-27,
-        _ => throw new ArgumentNullException()
-    };
-
-    /// <summary>
-    /// Параметр решётки (м)
-    /// </summary>
-    public static double GetLattice(AtomType type) => type switch
-    {
-        AtomType.Sn => 0.54307e-9,
-        AtomType.Ge => 0.566e-9,
+        AtomType.Sn => 118.71 * 1.66054e-27,
         _ => throw new ArgumentNullException()
     };
 }

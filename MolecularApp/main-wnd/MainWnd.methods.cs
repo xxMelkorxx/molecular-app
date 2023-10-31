@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Windows.Controls;
 using ScottPlot;
 using ScottPlot.Control;
 
@@ -41,11 +42,11 @@ public partial class MainWindow
     private string InitInfoSystem()
     {
         return "Структура создана...\n" +
-               $"Сплав SnGe: {_atomic.FractionSn}:{_atomic.FractionGe}\n" +
-               $"Размер структуры (Nx/Ny) - {_atomic.Size}/{_atomic.Size}\n" +
-               $"Размер структуры (Lx/Ly) - {(_atomic.BoxSize * 1e9).ToString("F3")}/{(_atomic.BoxSize * 1e9).ToString("F3")} нм\n" +
+               $"Сплав SnGe: {_atomic.SecondFraction}:{_atomic.FisrtFraction}\n" +
+               $"Размер структуры (Nx/Ny/Nz) - {_atomic.Size}/{_atomic.Size}/{_atomic.Size}\n" +
+               $"Размер структуры (Lx/Ly/Lz) - {(_atomic.BoxSize * 1e9).ToString("F3")}/{(_atomic.BoxSize * 1e9).ToString("F3")}/{(_atomic.BoxSize * 1e9).ToString("F3")} нм\n" +
                $"Число атомов - {_atomic.CountAtoms}\n" +
-               $"Параметр решётки - {_atomic.LatticeGeSn * 1e9} нм\n" +
+               $"Параметр решётки - {(_atomic.SystemLattice * 1e9).ToString("F3")} нм\n" +
                $"Кинетическая энергия - {_atomic.Ke.ToString("F5")} эВ\n" +
                $"Потенциальная энергия - {_atomic.Pe.ToString("F5")} эВ\n" +
                $"Полная энергия - {_atomic.Fe.ToString("F5")} эВ\n" +

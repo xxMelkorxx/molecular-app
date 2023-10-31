@@ -26,12 +26,12 @@ public struct XYZ
     /// <summary>
     /// Возвращает значение наибольшей координаты.
     /// </summary>
-    public double MaxElement() => double.Max(double.Max(X, Y), double.Max(X, Z));
+    public double MaxElement() => Math.Max(double.Max(X, Y), Math.Max(X, Z));
 
     /// <summary>
     /// Возвращает значение наименьшей координаты.
     /// </summary>
-    public double MinElement() => double.Min(double.Min(X, Y), double.Min(X, Z));
+    public double MinElement() => Math.Min(double.Min(X, Y), Math.Min(X, Z));
 
     /// <summary>
     /// Квадрат величины вектора.
@@ -41,7 +41,7 @@ public struct XYZ
     /// <summary>
     /// Величина вектора.
     /// </summary>
-    public double Magnitude() => double.Sqrt(SquaredMagnitude());
+    public double Magnitude() => Math.Sqrt(SquaredMagnitude());
 
     public static XYZ operator +(XYZ vec1, XYZ vec2) => new(vec1.X + vec2.X, vec1.Y + vec2.Y, vec1.Z + vec2.Z);
 

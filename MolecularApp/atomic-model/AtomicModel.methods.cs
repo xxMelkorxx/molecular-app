@@ -14,7 +14,7 @@ public partial class AtomicModel
     {
         Atoms.ForEach(atom =>
         {
-            var displacement = (-1 * XYZ.One + 2 * new XYZ(_rnd.NextDouble(), _rnd.NextDouble(), _rnd.NextDouble())) * k * LatticeGeSn;
+            var displacement = (-1 * XYZ.One + 2 * new XYZ(_rnd.NextDouble(), _rnd.NextDouble(), _rnd.NextDouble())) * k * SystemLattice;
             Flux = XYZ.Zero;
             atom.Position = Periodic(atom.Position + displacement);
             atom.PositionNp += displacement;
@@ -27,16 +27,18 @@ public partial class AtomicModel
     /// <param name="temp">Заданная температура.</param>
     public void InitVelocityNormalization(double temp)
     {
-        const double pi2 = 2 * double.Pi;
+        const double pi2 = 2 * Math.PI;
         Atoms.ForEach(atom =>
         {
             var r1 = _rnd.NextDouble();
             var r2 = _rnd.NextDouble();
             atom.Velocity = new XYZ(
-                double.Sin(pi2 * r1) * double.Cos(pi2 * r2),
-                double.Sin(pi2 * r1) * double.Sin(pi2 * r2),
-                double.Sin(pi2 * r1)) * double.Sqrt(3 * kB * temp / atom.Weight);
+                Math.Sin(pi2 * r1) * Math.Cos(pi2 * r2),
+                Math.Sin(pi2 * r1) * Math.Sin(pi2 * r2),
+                Math.Sin(pi2 * r1)
+            ) * Math.Sqrt(3 * kB * temp / atom.Weight);
         });
+        PulseZeroing();
     }
 
     /// <summary>
@@ -45,10 +47,11 @@ public partial class AtomicModel
     /// <param name="temp">Заданная температура</param>
     public void VelocityNormalization(double temp)
     {
-        var sum = Atoms.Sum(atom => atom.Weight * atom.Velocity.SquaredMagnitude());
-        if (sum == 0)
+        var sumKE = Atoms.Sum(atom => atom.Weight * atom.Velocity.SquaredMagnitude());
+        if (sumKE == 0)
             throw new DivideByZeroException();
-        var beta = Math.Sqrt(3 * CountAtoms * kB * temp / sum);
+        
+        var beta = Math.Sqrt(3 * CountAtoms * kB * temp / sumKE);
         Atoms.ForEach(atom => atom.Velocity *= beta);
     }
 
@@ -77,7 +80,7 @@ public partial class AtomicModel
     /// <returns>Массив точек функции радиального распределения</returns>
     public PointD[] GetRadialDistribution()
     {
-        var dr = 0.05 * LatticeGeSn * 0.726;
+        var dr = 0.05 * SystemLattice * 0.726;
         var dr2 = dr * dr;
         var rd = new PointD[(int)(BoxSize / dr)];
         for (var i = 0; i < rd.Length; i++)
@@ -201,7 +204,7 @@ public partial class AtomicModel
     /// <returns>Коэффициент самодиффузии (м²/с)</returns>
     public double GetSelfDiffCoefFromAcf(double[] zt, double norm) => (zt.Sum() - (zt[0] + zt[zt.Length - 1]) / 2) * dt * norm / 3;
 
-    public double GetSigma() => _potential.GetRadiusCutoff(FractionGe);
+    public double GetSigma() => _potential.GetRadiusCutoff(FisrtFraction);
 
     /// <summary>
     /// Вычисление параметра решётки системы по закону Вегарда.

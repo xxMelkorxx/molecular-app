@@ -159,7 +159,33 @@
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Величина смещения</Label>
                         <xctk:DoubleUpDown Name="NudDisplacement" TextAlignment="Right" Width="100" Height="25" Minimum="0" Maximum="1" Increment="0.01" Value="0.05"
-                                           IsEnabled="False" />
+                                           IsEnabled="False" FormatString="F3" />
+                    </WrapPanel>
+
+                    <Label HorizontalAlignment="Right" Margin="0 5 0 0">Характеристики сплава</Label>
+                    <WrapPanel HorizontalAlignment="Right" >
+                        <!-- <Label>Тип атома</Label> -->
+                        <ComboBox Name="ComboBoxFirstTypeAtoms" SelectedIndex="0"
+                                  Width="50" Height="25" IsReadOnly="True"
+                                  SelectionChanged="OnSelectionChangedComboBoxFirstTypeAtoms">
+                            <sys:String>Si</sys:String>
+                            <sys:String>Ge</sys:String>
+                            <sys:String>Sn</sys:String>
+                        </ComboBox>
+                        <xctk:DoubleUpDown Name="NudFirstFraction" Width="60" Height="25" FormatString="F2" TextAlignment="Right"
+                                           Minimum="0" Maximum="1" Increment="0.01" Value="0.5"
+                                           ValueChanged="OnValueChangedFirstFraction" />
+                        <Label>:</Label>
+                        <xctk:DoubleUpDown Name="NudSecondFraction" Width="60" Height="25" FormatString="F2" TextAlignment="Right"
+                                           Minimum="0" Maximum="1" Increment="0.01" Value="0.5"
+                                           ValueChanged="OnValueChangedSecondFraction" />
+                        <ComboBox Name="ComboBoxSecondTypeAtoms" SelectedIndex="1"
+                                  Width="50" Height="25" IsReadOnly="True"
+                                  SelectionChanged="OnSelectionChangedComboBoxSecondTypeAtoms">
+                            <sys:String>Si</sys:String>
+                            <sys:String>Ge</sys:String>
+                            <sys:String>Sn</sys:String>
+                        </ComboBox>
                     </WrapPanel>
                 </StackPanel>
             </GroupBox>
@@ -215,10 +241,10 @@
 
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Температура</Label>
-                        <xctk:IntegerUpDown Name="NudTemperature"
-                                            TextAlignment="Right" Width="100" Height="25"
-                                            Minimum="0" Maximum="10000" Increment="10" Value="300"
-                                            IsEnabled="False" />
+                        <xctk:DoubleUpDown Name="NudTemperature"
+                                           TextAlignment="Right" Width="100" Height="25"
+                                           Minimum="0" Maximum="10000" Increment="10" Value="300"
+                                           IsEnabled="False" />
                     </WrapPanel>
 
                     <WrapPanel HorizontalAlignment="Right">

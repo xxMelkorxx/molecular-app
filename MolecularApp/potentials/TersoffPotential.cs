@@ -6,18 +6,34 @@ namespace MolecularApp.potentials;
 
 public class TersoffPotential : IPotential
 {
-    private TersoffParams _paramsSn, _paramsGe, _paramsSnGe;
+    private AtomType _firstTypeAtom, _secondTypeAtom;
+    private TersoffParams _secondAtomParams, _firstAtomParams, _commonAtomParams;
 
     /// <summary>
     /// Инициализация потенциала.
     /// </summary>
-    /// <param name="paramsGe"></param>
-    /// <param name="paramsSn"></param>
-    public TersoffPotential(TersoffParams paramsGe, TersoffParams paramsSn)
+    /// <param name="firstTypeAtom"></param>
+    /// <param name="secondTypeAtom"></param>
+    public TersoffPotential(AtomType firstTypeAtom, AtomType secondTypeAtom)
     {
-        _paramsGe = paramsGe;
-        _paramsSn = paramsSn;
-        _paramsSnGe = new TersoffParams(paramsGe, paramsSn);
+        _firstTypeAtom = firstTypeAtom;
+        _secondTypeAtom = secondTypeAtom;
+
+        _firstAtomParams = firstTypeAtom switch
+        {
+            AtomType.Si => TersoffParams.ParamsSi,
+            AtomType.Ge => TersoffParams.ParamsGe,
+            AtomType.Sn => TersoffParams.ParamsSn,
+            _ => throw new ArgumentException("Неверный тип атома")
+        };
+        _secondAtomParams = secondTypeAtom switch
+        {
+            AtomType.Si => TersoffParams.ParamsSi,
+            AtomType.Ge => TersoffParams.ParamsGe,
+            AtomType.Sn => TersoffParams.ParamsSn,
+            _ => throw new ArgumentException("Неверный тип атома")
+        };
+        _commonAtomParams = new TersoffParams(_firstAtomParams, _secondAtomParams);
     }
 
     /// <summary>
@@ -25,7 +41,7 @@ public class TersoffPotential : IPotential
     /// </summary>
     /// <param name="fraction"></param>
     /// <returns></returns>
-    public double GetRadiusCutoff(double fraction) => fraction >= 0.5 ? _paramsGe.S : _paramsSn.S;
+    public double GetRadiusCutoff(double fraction) => fraction >= 0.5 ? _firstAtomParams.S : _secondAtomParams.S;
 
     /// <summary>
     /// Межатомная сила взаимодействия в потенциале (Дж * м).
@@ -49,8 +65,8 @@ public class TersoffPotential : IPotential
         {
             var neigh = selAtom.Neighbours[j];
 
-            var paramsIJ = (selAtom.Type == neigh.Type) ? (selAtom.Type == AtomType.Ge ? _paramsGe : _paramsSn) : _paramsSnGe;
-            var paramsI = selAtom.Type == AtomType.Ge ? _paramsGe : _paramsSn;
+            var paramsIJ = (selAtom.Type == neigh.Type) ? (selAtom.Type == _firstTypeAtom ? _firstAtomParams : _secondAtomParams) : _commonAtomParams;
+            var paramsI = selAtom.Type == _firstTypeAtom ? _firstAtomParams : _secondAtomParams;
             var rij = atomsDistances[PairIndexes.GetIndexes(selAtom, neigh)];
 
             if (rij < paramsIJ.S)
@@ -74,7 +90,7 @@ public class TersoffPotential : IPotential
             if (atomK.Index == atomJ.Index) continue;
 
             var rik = atomsDistances[PairIndexes.GetIndexes(atomI, atomK)];
-            var paramsIK = (atomI.Type == atomK.Type) ? (atomI.Type == AtomType.Ge ? _paramsGe : _paramsSn) : _paramsSnGe;
+            var paramsIK = (atomI.Type == atomK.Type) ? (atomI.Type == _firstTypeAtom ? _firstAtomParams : _secondAtomParams) : _commonAtomParams;
 
             if (rik < paramsIK.S)
             {

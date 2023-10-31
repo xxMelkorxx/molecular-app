@@ -6,6 +6,9 @@
     <Nullable>disable</Nullable>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>True</UseWindowsForms>
+    <LangVersion>11</LangVersion>
+    <AssemblyName>MolecularApplication</AssemblyName>
+    <ApplicationIcon>icons\unn_logo.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>

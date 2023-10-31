@@ -25,7 +25,7 @@ public partial class AtomicModel
     /// <summary>
     /// Размер расчётной ячейки (м).
     /// </summary>
-    public double BoxSize => Size * LatticeGeSn;
+    public double BoxSize => Size * SystemLattice;
 
     /// <summary>
     /// Число атомов.
@@ -35,7 +35,7 @@ public partial class AtomicModel
     /// <summary>
     /// Кинетическая энергия системы (эВ).
     /// </summary>
-    public double Ke => Atoms.Sum(atom => atom.Weight * atom.Velocity.SquaredMagnitude() / 2d) / eV;
+    public double Ke => Atoms.Sum(atom => atom.Weight * atom.Velocity.SquaredMagnitude() / 2d);
 
     /// <summary>
     /// Потенциальная энергия системы (эВ).
@@ -72,19 +72,19 @@ public partial class AtomicModel
     public double V => BoxSize * BoxSize * BoxSize;
 
     /// <summary>
-    /// Доля Ge.
+    /// Доля первого элемента в сплаве.
     /// </summary>
-    public double FractionGe { get; }
+    public double FisrtFraction { get; set; }
 
     /// <summary>
-    /// Доля Sn.
+    /// Доля второго элемента в сплаве.
     /// </summary>
-    public double FractionSn => 1 - FractionGe;
+    public double SecondFraction { get; set; }
 
     /// <summary>
-    /// Параметр решётки сплава SnGe (м).
+    /// Параметр решётки сплава (м).
     /// </summary>
-    public double LatticeGeSn => Atom.GetLattice(AtomType.Ge) * FractionGe + Atom.GetLattice(AtomType.Sn) * FractionSn;
+    public double SystemLattice { get; }
 
     // Параметры симуляции.
     /// <summary>
@@ -117,20 +117,6 @@ public partial class AtomicModel
     private const double kB = 1.380649e-23; // Постоянная Больцмана (Дж/К).
 
     /// <summary>
-    /// Параметры потенциала для Ge (германий).
-    /// </summary>
-    // private static TersoffParams ParamsGe => new(1769, 419.23, 0.31, 0.28, 9.01e-7, 106430, 15.65, 0.75627, -0.43884, 24.451, 17.047);
-    private static TersoffParams ParamsGe => new(1769, 419.23, 0.24451, 0.17047, 9.01e-7, 0.75627, 1.0643e+5, 15.65, -0.43884, 2.8, 3.1);
-
-    /// <summary>
-    /// Параметры потенциала для Sn (олово).
-    /// </summary>
-    // private static TersoffParams ParamsSn => new(520.4677, 281.4117, 0.34, 0.30, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 15.5, 12.5649);
-    private static TersoffParams ParamsSn => new(520.4677, 281.4117, 0.155, 0.125649, 6.01e-7, 0.74, 1.4e+5, 14.5, -0.502, 3.0, 3.4);
-    // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(526.46, 296.83, 0.34, 0.30, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 15.3, 12.56);
-    // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(2848, 658.62, 0.32, 0.28, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 22.5, 16.2);
-
-    /// <summary>
     /// Класс потенциала.
     /// </summary>
     private readonly IPotential _potential;
@@ -143,19 +129,26 @@ public partial class AtomicModel
     /// Создание атомной модели.
     /// </summary>
     /// <param name="size"></param>
-    /// <param name="fraction"></param>
-    public AtomicModel(int size, double fraction)
+    /// <param name="firstTypeAtom"></param>
+    /// <param name="secondTypeAtom"></param>
+    public AtomicModel(int size, AtomType firstTypeAtom, AtomType secondTypeAtom)
     {
         Atoms = new List<Atom>();
         DistanceBetweenAtoms = new Dictionary<PairIndexes, double>();
         Size = size;
-        FractionGe = fraction;
+        FisrtFraction = 1;
+        SecondFraction = 0;
+        SystemLattice = Atom.GetLattice(firstTypeAtom) * FisrtFraction + Atom.GetLattice(secondTypeAtom) * SecondFraction;
         CurrentStep = 1;
 
         _rnd = new Random(Guid.NewGuid().GetHashCode());
-        _potential = new TersoffPotential(ParamsGe, ParamsSn); // Инициализация потенциала.
-        CreateDiamondSystem(); // Создание расчётной ячейки.
-        InitCalculation(); // Начальный расчёт характеристик.
+
+        // Инициализация потенциала.
+        _potential = new TersoffPotential(firstTypeAtom, secondTypeAtom);
+        // Создание расчётной ячейки.
+        CreateDiamondSystem();
+        // Начальный расчёт характеристик.
+        InitCalculation();
 
         _rt0 = GetPosNpAtoms();
         _vtList = new List<List<XYZ>> { GetVelocitiesAtoms() };
@@ -171,18 +164,18 @@ public partial class AtomicModel
         for (var j = 0; j < Size; j++)
         for (var k = 0; k < Size; k++)
         {
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i, j, k) * LatticeGeSn));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.5, j, k + 0.5) * LatticeGeSn));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i, j + 0.5, k + 0.5) * LatticeGeSn));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.5, j + 0.5, k) * LatticeGeSn));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.25, j + 0.25, k + 0.25) * LatticeGeSn));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.25, j + 0.75, k + 0.75) * LatticeGeSn));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.75, j + 0.25, k + 0.75) * LatticeGeSn));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.75, j + 0.75, k + 0.25) * LatticeGeSn));
+            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i, j, k) * SystemLattice));
+            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.5, j, k + 0.5) * SystemLattice));
+            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i, j + 0.5, k + 0.5) * SystemLattice));
+            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.5, j + 0.5, k) * SystemLattice));
+            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.25, j + 0.25, k + 0.25) * SystemLattice));
+            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.25, j + 0.75, k + 0.75) * SystemLattice));
+            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.75, j + 0.25, k + 0.75) * SystemLattice));
+            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.75, j + 0.75, k + 0.25) * SystemLattice));
         }
 
         // Заполнение системы атомами олова.
-        var countSwapAtoms = (int)(CountAtoms * FractionSn);
+        var countSwapAtoms = (int)(CountAtoms * SecondFraction);
         for (var i = 0; i < countSwapAtoms; i++)
         {
             idx = _rnd.Next(0, CountAtoms);
@@ -190,5 +183,16 @@ public partial class AtomicModel
                 Atoms[idx].Type = AtomType.Sn;
             else i--;
         }
+    }
+
+    /// <summary>
+    /// Вычисление начальных параметров системы (Acceleration, Pe, Ke, Press).
+    /// </summary>
+    public void InitCalculation()
+    {
+        // Рассчёт соседей для каждого атома.
+        SearchAtomsNeighbours();
+        // Начальный подсчёт ускорений атомов.
+        Accels();
     }
 }
