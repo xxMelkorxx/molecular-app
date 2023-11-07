@@ -33,8 +33,8 @@
                 </Grid.RowDefinitions>
 
                 <WpfPlot Grid.Row="0" Name="Chart1" FontFamily="Roboto Mono" />
-                <WpfPlot Grid.Row="1" Name="Chart3" FontFamily="Roboto Mono" />
-                <WpfPlot Grid.Row="2" Name="Chart2" FontFamily="Roboto Mono" />
+                <WpfPlot Grid.Row="1" Name="Chart2" FontFamily="Roboto Mono" />
+                <WpfPlot Grid.Row="2" Name="Chart3" FontFamily="Roboto Mono" />
                 <WpfPlot Grid.Row="3" Name="Chart4" FontFamily="Roboto Mono" />
             </Grid>
         </GroupBox>
@@ -64,7 +64,6 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
                 </Grid.ColumnDefinitions>
 
                 <Slider Grid.Column="0" Name="SliderTimeStep" IsEnabled="False"
@@ -85,41 +84,41 @@
                            RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
                 <Button Grid.Column="3" Name="BtnPlayTimer" ToolTip="Запустить анимацию"
-                        IsEnabled="False" Click="OnClickBtnPlayTimer"
+                        Click="OnClickBtnPlayTimer"
                         MaxWidth="50" MaxHeight="50"
                         Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
                     <Image Source="icons/play-2.png"
                            RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
-                <Button Grid.Column="4" Name="BtnPauseTimer" ToolTip="Останопить анимацию"
-                        IsEnabled="False" Click="OnClickBtnPauseTimer"
+                <Button Grid.Column="3" Name="BtnPauseTimer" ToolTip="Остановить анимацию"
+                        Visibility="Collapsed" Click="OnClickBtnPauseTimer"
                         MaxWidth="50" MaxHeight="50"
                         Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
                     <Image Source="icons/pause.png"
                            RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
-                <Button Grid.Column="5" Name="BtnStepForward" ToolTip="Шаг назад"
+                <Button Grid.Column="4" Name="BtnStepForward" ToolTip="Шаг назад"
                         IsEnabled="False" Click="OnClickBtnStepForward"
                         MaxWidth="50" MaxHeight="50"
                         Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
                     <Image Source="icons/angle-small-right.png"
                            RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
-                <Button Grid.Column="6" Name="BtnToEnd" ToolTip="В конец"
+                <Button Grid.Column="5" Name="BtnToEnd" ToolTip="В конец"
                         IsEnabled="False" Click="OnClickBtnToEnd"
                         MaxWidth="50" MaxHeight="50"
                         Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
                     <Image Source="icons/angle-double-small-right.png"
                            RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
-                <Button Grid.Column="7" Name="BtnFaster" ToolTip="Ускорить анимацию"
+                <Button Grid.Column="6" Name="BtnFaster" ToolTip="Ускорить анимацию"
                         IsEnabled="False" Click="OnClickBtnFaster"
                         MaxWidth="50" MaxHeight="50"
                         Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
                     <Image Source="icons/angle-double-small-up.png"
                            RenderOptions.BitmapScalingMode="HighQuality" />
                 </Button>
-                <Button Grid.Column="8" Name="BtnSlower" ToolTip="Замедлить анимацию"
+                <Button Grid.Column="7" Name="BtnSlower" ToolTip="Замедлить анимацию"
                         IsEnabled="False" Click="OnClickBtnSlower"
                         MaxWidth="50" MaxHeight="50"
                         Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}">
@@ -194,7 +193,7 @@
                 <StackPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Временной шаг</Label>
-                        <xctk:DoubleUpDown Name="NudTimeStep" TextAlignment="Right" Width="75" Height="25" Minimum="0.0001" Maximum="1" Increment="0.01" Value="0.01" />
+                        <xctk:DoubleUpDown Name="NudTimeStep" TextAlignment="Right" Width="75" Height="25" Minimum="0.001" Maximum="1" Increment="0.001" Value="0.01" FormatString="F3"/>
                         <Label>пс</Label>
                     </WrapPanel>
 
@@ -202,10 +201,18 @@
                         <Label>Число шагов</Label>
                         <xctk:IntegerUpDown Name="NudCountStep"
                                             TextAlignment="Right" Width="100" Height="25"
-                                            Minimum="1" Maximum="10000000" Increment="1000" Value="1000"
+                                            Minimum="1" Maximum="10000000" Increment="100" Value="500"
                                             ValueChanged="OnValueChangedNudCountStep" />
                     </WrapPanel>
 
+                    <WrapPanel HorizontalAlignment="Right">
+                        <Label>Шаг подсчёта температуры</Label>
+                        <xctk:IntegerUpDown Name="NudTempStep"
+                                            TextAlignment="Right" Width="100" Height="25"
+                                            Minimum="1" Maximum="10000" Increment="100" Value="100"
+                                            ValueChanged="OnValueChangedNudCountStep" />
+                    </WrapPanel>
+                    
                     <CheckBox Name="CbIsSnapshot"
                               HorizontalAlignment="Right" Margin="0 5 0 0"
                               Checked="OnCheckedIsSnapshot"

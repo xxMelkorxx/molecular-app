@@ -11,6 +11,8 @@ public partial class AtomicModel
     /// </summary>
     public void Verlet()
     {
+        _virial = 0;
+        
         // Расчёт новых положений атомов.
         Atoms.ForEach(atom =>
         {
@@ -25,6 +27,12 @@ public partial class AtomicModel
         Accels();
         Atoms.ForEach(atom => atom.Velocity += 0.5 * atom.Acceleration * dt);
 
+        // Рассчёт АКФ скорости.
+        if (CurrentStep == 1)
+            _vtList.Clear();
+        if (_vtList.Count < CountNumberAcf + CountRepeatAcf * StepRepeatAcf)
+            _vtList.Add(GetVelocitiesAtoms());
+        
         CurrentStep++;
     }
 
@@ -42,7 +50,7 @@ public partial class AtomicModel
         Atoms.ForEach(a => a.Neighbours.Clear());
         DistanceBetweenAtoms.Clear();
 
-        var searchRadius = _potential.GetRadiusCutoff(FisrtFraction);
+        var searchRadius = _potential.GetRadiusCutoff(FisrtFraction) + 1.2 * (1e-3 * SystemLattice);
         var searchRadiusSquared = searchRadius * searchRadius;
 
         // Расчёт расстояний между атомами системы в пределах (многопоточность).
@@ -91,7 +99,12 @@ public partial class AtomicModel
     /// </summary>
     public void Accels()
     {
-        Parallel.ForEach(Atoms, atom => atom.Acceleration = ThreePointsDiffAtom(atom) / atom.Weight);
+        Parallel.ForEach(Atoms, atom =>
+        {
+            var force = ThreePointsDiffAtom(atom);
+            atom.Acceleration = force / atom.Weight;
+            _virial += atom.Position.X * force.X + atom.Position.Y * force.Y + atom.Position.Z * force.Z;
+        });
     }
 
     /// <summary>

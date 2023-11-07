@@ -33,7 +33,7 @@ public partial class MainWindow
         }
 
         if (_isNewSystem)
-            _scene.CreateScene(_positionsAtomsList[0], _atomic.BoxSize, _atomic.GetSigma() / 2);
+            _scene.CreateScene(_positionsAtomsList[0], _atomic.BoxSize, _atomic.GetRadiusAtom() / 2);
         else
             _scene.UpdatePositionsAtoms(_positionsAtomsList[(int)SliderTimeStep.Value], _atomic.BoxSize);
     }
@@ -52,8 +52,8 @@ public partial class MainWindow
     {
         _timer.Start();
 
-        BtnPlayTimer.IsEnabled = false;
-        BtnPauseTimer.IsEnabled = true;
+        BtnPlayTimer.Visibility = Visibility.Collapsed;
+        BtnPauseTimer.Visibility = Visibility.Visible;
         BtnFaster.IsEnabled = _timer.Interval != 1;
         BtnSlower.IsEnabled = true;
     }
@@ -62,8 +62,8 @@ public partial class MainWindow
     {
         _timer.Stop();
 
-        BtnPlayTimer.IsEnabled = true;
-        BtnPauseTimer.IsEnabled = false;
+        BtnPlayTimer.Visibility = Visibility.Visible;
+        BtnPauseTimer.Visibility = Visibility.Collapsed;
         BtnFaster.IsEnabled = false;
         BtnSlower.IsEnabled = false;
     }

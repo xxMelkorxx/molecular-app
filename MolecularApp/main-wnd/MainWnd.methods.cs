@@ -45,14 +45,14 @@ public partial class MainWindow
                $"Сплав SnGe: {_atomic.SecondFraction}:{_atomic.FisrtFraction}\n" +
                $"Размер структуры (Nx/Ny/Nz) - {_atomic.Size}/{_atomic.Size}/{_atomic.Size}\n" +
                $"Размер структуры (Lx/Ly/Lz) - {(_atomic.BoxSize * 1e9).ToString("F3")}/{(_atomic.BoxSize * 1e9).ToString("F3")}/{(_atomic.BoxSize * 1e9).ToString("F3")} нм\n" +
+               $"Объём - {(_atomic.V * 1e27).ToString("F5")} нм³\n" +
                $"Число атомов - {_atomic.CountAtoms}\n" +
                $"Параметр решётки - {(_atomic.SystemLattice * 1e9).ToString("F3")} нм\n" +
                $"Кинетическая энергия - {_atomic.Ke.ToString("F5")} эВ\n" +
                $"Потенциальная энергия - {_atomic.Pe.ToString("F5")} эВ\n" +
-               $"Полная энергия - {_atomic.Fe.ToString("F5")} эВ\n" +
-               $"Температура - {_atomic.T.ToString("F1")} К\n" +
-               $"Объём - {(_atomic.V * 1e27).ToString("F5")} нм³\n" +
-               $"Давление - {_atomic.P1.ToString("F1")} Па\n";
+               $"Полная энергия - {_atomic.Fe.ToString("F5")} эВ\n";
+        // $"Температура - {_atomic.T.ToString("F1")} К\n" +
+        // $"Давление - {Math.Round(_atomic.P1)} Па\n";
     }
 
     /// <summary>
@@ -64,10 +64,10 @@ public partial class MainWindow
         return $"{"Шаг".PadLeft(6)} |" +
                $"{"Кин.энергия(эВ)".PadLeft(16)} |" +
                $"{"Пот.энергия(эВ)".PadLeft(16)} |" +
-               $"{"Полн.энергия(эВ)".PadLeft(17)} |" +
-               $"{"Температура(К)".PadLeft(15)} |" +
-               $"{"Давление 1(Па)".PadLeft(15)} |" +
-               $"{"Давление 2(Па)".PadLeft(15)} |\n";
+               $"{"Полн.энергия(эВ)".PadLeft(17)} |\n";
+               // + $"{"Температура(К)".PadLeft(15)} |"
+               // + $"{"Давление 1(Па)".PadLeft(15)} |"
+               // + $"{"Давление 2(Па)".PadLeft(15)} |\n";
     }
 
     /// <summary>
@@ -81,10 +81,10 @@ public partial class MainWindow
         return $"{i.ToString().PadLeft(6)} |" +
                $"{_atomic.Ke.ToString("F5").PadLeft(16)} |" +
                $"{_atomic.Pe.ToString("F5").PadLeft(16)} |" +
-               $"{_atomic.Fe.ToString("F5").PadLeft(17)} |" +
-               $"{_atomic.T.ToString("F1").PadLeft(15)} |" +
-               $"{_atomic.P1.ToString("F1").PadLeft(15)} |" +
-               $"{(_atomic.P2 / nsnap).ToString("F1").PadLeft(15)} |\n";
+               $"{_atomic.Fe.ToString("F5").PadLeft(17)} |\n";
+               // + $"{_atomic.T.ToString("F1").PadLeft(15)} |"
+               // + $"{Math.Round(_atomic.P1).ToString("F0").PadLeft(15)} |\n";
+               // + $"{(_atomic.P2 / nsnap).ToString("F1").PadLeft(15)} |\n";
     }
 
     /// <summary>

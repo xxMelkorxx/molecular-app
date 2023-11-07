@@ -204,14 +204,5 @@ public partial class AtomicModel
     /// <returns>Коэффициент самодиффузии (м²/с)</returns>
     public double GetSelfDiffCoefFromAcf(double[] zt, double norm) => (zt.Sum() - (zt[0] + zt[zt.Length - 1]) / 2) * dt * norm / 3;
 
-    public double GetSigma() => _potential.GetRadiusCutoff(FisrtFraction);
-
-    /// <summary>
-    /// Вычисление параметра решётки системы по закону Вегарда.
-    /// </summary>
-    /// <param name="fraction">Доля первого типа атома.</param>
-    /// <param name="lattice1">Параметр решётки первого типа атома.</param>
-    /// <param name="lattice2">Параметр решётки второго типа атома.</param>
-    /// <returns></returns>
-    public static double VegardLaw(double fraction, double lattice1, double lattice2) => lattice1 * fraction + lattice2 * (1 - fraction);
+    public double GetRadiusAtom() => _potential.GetRadiusCutoff(FisrtFraction);
 }

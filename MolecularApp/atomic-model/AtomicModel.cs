@@ -35,7 +35,7 @@ public partial class AtomicModel
     /// <summary>
     /// Кинетическая энергия системы (эВ).
     /// </summary>
-    public double Ke => Atoms.Sum(atom => atom.Weight * atom.Velocity.SquaredMagnitude() / 2d);
+    public double Ke => Atoms.Sum(atom => atom.Weight * atom.Velocity.SquaredMagnitude() / 2d) / eV;
 
     /// <summary>
     /// Потенциальная энергия системы (эВ).
@@ -50,12 +50,12 @@ public partial class AtomicModel
     /// <summary>
     /// Температура системы.
     /// </summary>
-    public double T => 2 * Ke / (3 * kB * CountAtoms);
+    public double T => 2 * Ke * eV / (3 * kB * CountAtoms);
 
     /// <summary>
     /// Давление системы, рассчитанный через вириал (Па).
     /// </summary>
-    public double P1 => (Ke + _virial / CountAtoms) / (3 * V);
+    public double P1 => (Ke * eV + _virial / CountAtoms) / (3 * V);
 
     private double _virial;
 
@@ -138,9 +138,12 @@ public partial class AtomicModel
         Size = size;
         FisrtFraction = 1;
         SecondFraction = 0;
-        SystemLattice = Atom.GetLattice(firstTypeAtom) * FisrtFraction + Atom.GetLattice(secondTypeAtom) * SecondFraction;
         CurrentStep = 1;
 
+        // Вычисление параметра решётки системы по закону Вегарда.
+        SystemLattice = Atom.GetLattice(firstTypeAtom) * FisrtFraction + Atom.GetLattice(secondTypeAtom) * SecondFraction;
+        
+        _virial = 0;
         _rnd = new Random(Guid.NewGuid().GetHashCode());
 
         // Инициализация потенциала.

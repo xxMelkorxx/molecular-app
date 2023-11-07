@@ -42,8 +42,8 @@ public partial class MainWindow
     {
         // Настройка графиков.
         SetUpChart(Chart1, "Графики энергий системы", "t, пс", "E, эВ");
-        SetUpChart(Chart3, "График радиального распределения системы", "r, нм", "g(r)");
-        SetUpChart(Chart2, "График  среднего квадрата смещения системы", "t, пс", "R², нм²");
+        SetUpChart(Chart2, "График радиального распределения системы", "r, нм", "g(r)");
+        SetUpChart(Chart3, "График  среднего квадрата смещения системы", "t, пс", "R², нм²");
         SetUpChart(Chart4, "График автокорреляционной функции скорости", "t, пс", "Z(t)");
 
         _params = new Dictionary<string, object>(); // Инициализация словаря с параметрами.
@@ -78,10 +78,10 @@ public partial class MainWindow
         // Очистка графиков.
         Chart1.Plot.Clear();
         Chart1.Refresh();
-        Chart2.Plot.Clear();
-        Chart2.Refresh();
         Chart3.Plot.Clear();
         Chart3.Refresh();
+        Chart2.Plot.Clear();
+        Chart2.Refresh();
         Chart4.Plot.Clear();
         Chart4.Refresh();
 
@@ -130,19 +130,19 @@ public partial class MainWindow
             _positionsAtomsList = new List<List<XYZ>> { _atomic.GetPosAtoms() };
 
             // Отрисовка атомов на сцене.
-            _scene.CreateScene(_positionsAtomsList.First(), _atomic.BoxSize, _atomic.GetSigma() / 2d);
+            _scene.CreateScene(_positionsAtomsList.First(), _atomic.BoxSize, _atomic.GetRadiusAtom() / 2d);
 
             // Вывод начальной информации.
             RtbOutputInfo.AppendText(InitInfoSystem());
 
             // Настройка и отрисовка графика радиального распределения.
             var rd = _atomic.GetRadialDistribution();
-            _yMaxRb = rd.Max(p => p.Y);
-            Chart3.Plot.Clear();
-            Chart3.Plot.AddSignalXY(rd.Select(p => p.X * 1e9).ToArray(), rd.Select(p => p.Y).ToArray(), Color.Blue, "Радиальное распределение");
-            Chart3.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.SystemLattice * 1e9 * 0.726, yMin: 0, yMax: _yMaxRb);
-            Chart3.Plot.Legend(location: Alignment.UpperRight);
-            Chart3.Refresh();
+            _yMaxRb = rd.Max(p => p.Y) * 1.5;
+            Chart2.Plot.Clear();
+            Chart2.Plot.AddSignalXY(rd.Select(p => p.X * 1e9).ToArray(), rd.Select(p => p.Y).ToArray(), Color.Blue, "Радиальное распределение");
+            Chart2.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.SystemLattice * 1e9 * 0.726, yMin: 0, yMax: _yMaxRb);
+            Chart2.Plot.Legend(location: Alignment.UpperRight);
+            Chart2.Refresh();
 
             BtnCreateModel.IsEnabled = true;
             BtnStartCalculation.IsEnabled = true;
@@ -150,7 +150,6 @@ public partial class MainWindow
             BtnToBegin.IsEnabled = false;
             BtnStepBack.IsEnabled = false;
             BtnPlayTimer.IsEnabled = false;
-            BtnPauseTimer.IsEnabled = false;
             BtnStepForward.IsEnabled = false;
             BtnToEnd.IsEnabled = false;
             BtnFaster.IsEnabled = false;
@@ -178,6 +177,7 @@ public partial class MainWindow
         BtnCancelCalculation.IsEnabled = true;
 
         _params["countStep"] = NudCountStep.Value;
+        _params["tempStep"] = NudTempStep.Value;
         _params["snapshotStep"] = NudSnapshotStep.Value;
         _params["stepRt"] = NudStepMsd.Value;
         _params["T"] = NudTemperature.Value;
@@ -198,14 +198,14 @@ public partial class MainWindow
             xMin: _initStep * _atomic.dt * 1e12,
             xMax: (_initStep + (int)_params["countStep"] - 1) * _atomic.dt * 1e12);
         Chart1.Refresh();
-        Chart2.Plot.Clear();
-        Chart2.Refresh();
+        Chart3.Plot.Clear();
+        Chart3.Refresh();
         Chart4.Plot.Clear();
         Chart4.Refresh();
 
         // Сброс ProgressBar.
         ProgressBar.Value = 0;
-        ProgressBar.Maximum = (int)_params["countStep"];
+        ProgressBar.Maximum = (int)_params["countStep"] - 1;
 
         // Вывод начальной информации.
         RtbOutputInfo.AppendText(_isNormSpeeds ? "\n\nЗапуск перенормировки скоростей...\n" : "\n\nЗапуск моделирования...\n");
@@ -231,6 +231,7 @@ public partial class MainWindow
             throw new NullReferenceException();
 
         var countStep = (int)_params["countStep"];
+        var tempStep = (int)_params["tempStep"];
         var snapshotStep = (int)_params["snapshotStep"];
 
         _atomic.CurrentStep = 1;
@@ -274,17 +275,29 @@ public partial class MainWindow
 
                     // Настройка и отрисовка графика радиального распределения.
                     var rd = _atomic.GetRadialDistribution();
-                    Chart3.Plot.Clear();
-                    Chart3.Plot.AddSignalXY(
+                    Chart2.Plot.Clear();
+                    Chart2.Plot.AddSignalXY(
                         rd.Select(p => p.X * 1e9).ToArray(),
                         rd.Select(p => p.Y).ToArray(),
                         color: Color.Blue, label: "Радиальное распределение"
                     );
-                    Chart3.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.SystemLattice * 1e9 * 0.726, yMin: 0, yMax: _yMaxRb);
-                    Chart3.Plot.Legend(location: Alignment.UpperRight);
-                    Chart3.Refresh();
+                    Chart2.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.SystemLattice * 1e9 * 0.726, yMin: 0, yMax: _yMaxRb);
+                    Chart2.Plot.Legend(location: Alignment.UpperRight);
+                    Chart2.Refresh();
                 });
 
+            if (i % tempStep == 0)
+            {
+                Application.Current.Dispatcher.Invoke(DispatcherPriority.Send, () =>
+                {
+                    RtbOutputInfo.AppendText($"\n{Math.Round(_averT / tempStep, 3)} К - средняя температура");
+                    RtbOutputInfo.AppendText($"\n{Math.Round(_averP / tempStep)} Па - среднее давление\n\n");
+                    RtbOutputInfo.ScrollToEnd();
+                });
+                _averT = 0;
+                _averP = 0;
+            }
+            
             // Расчёт среднего квадрата смещения.
             if (i % (int)_params["stepRt"] == 0 || i == _initStep + countStep - 1)
                 _msdPoints.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetMsd()));
@@ -292,9 +305,7 @@ public partial class MainWindow
             // Обновление ProgressBar.
             _bgWorkerCalculation.ReportProgress(i - _initStep);
         }
-
-        _averT /= countStep;
-        _averP /= countStep;
+        
         _initStep += _atomic.CurrentStep - 1;
     }
 
@@ -321,42 +332,40 @@ public partial class MainWindow
         Chart1.Plot.Margins(x: 0.0, y: 0.6);
         Chart1.Plot.Legend(location: Alignment.UpperRight);
         Chart1.Refresh();
-
+        
         // Отрисовка графика радиального распределения.
-        // var rd = _atomic.GetRadialDistribution();
-        // Chart3.Plot.Clear();
-        // Chart3.Plot.AddSignalXY(rd.Select(p => p.X * 1e9).ToArray(), rd.Select(p => p.Y).ToArray(), Color.Blue, "Радиальное распределение");
-        // Chart3.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.LatticeGeSn * 1e9 * 0.726, yMin: 0, yMax: rd.Max(p => p.Y) * 1.1);
-        // Chart3.Plot.Legend(location: Alignment.UpperRight);
-        // Chart3.Refresh();
+        var rd = _atomic.GetRadialDistribution();
+        Chart2.Plot.Clear();
+        Chart2.Plot.AddSignalXY(rd.Select(p => p.X * 1e9).ToArray(), rd.Select(p => p.Y).ToArray(), Color.Blue, "Радиальное распределение");
+        Chart2.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.SystemLattice * 1e9 * 0.726, yMin: 0, yMax: rd.Max(p => p.Y) * 1.1);
+        Chart2.Plot.Legend(location: Alignment.UpperRight);
+        Chart2.Refresh();
 
         // Отрисовка графика среднего квадрата смещения распределения.
-        // if (_msdPoints.Count != 1)
-        // {
-        //     Chart2.Plot.AddSignalXY(_msdPoints.Select(p => p.X * 1e12).ToArray(), _msdPoints.Select(p => p.Y * 1e18).ToArray(), Color.Indigo, "Средний квадрат смещения");
-        //     Chart2.Plot.SetAxisLimits(xMin: 0, xMax: _msdPoints.Max(p => p.X * 1e12), yMin: 0, yMax: (_msdPoints.Max(p => p.Y * 1e18) < 1e-10 ? 0.1 : _msdPoints.Max(p => p.Y * 1e18)) * 1.5);
-        //     Chart2.Plot.Legend(location: Alignment.UpperRight);
-        //     Chart2.Refresh();
-        // }
+        if (_msdPoints.Count != 1)
+        {
+            Chart3.Plot.AddSignalXY(_msdPoints.Select(p => p.X * 1e12).ToArray(), _msdPoints.Select(p => p.Y * 1e18).ToArray(), Color.Indigo, "Средний квадрат смещения");
+            Chart3.Plot.SetAxisLimits(xMin: 0, xMax: _msdPoints.Max(p => p.X * 1e12), yMin: 0, yMax: (_msdPoints.Max(p => p.Y * 1e18) < 1e-10 ? 0.1 : _msdPoints.Max(p => p.Y * 1e18)) * 1.5);
+            Chart3.Plot.Legend(location: Alignment.UpperRight);
+            Chart3.Refresh();
+        }
 
         // Отрисовка графика АКФ скорости.
-        // var zt = _atomic.GetAcfs(out var norm);
-        // Chart4.Plot.AddSignal(zt, 1 / (_atomic.dt * 1e12), Color.Green, "Автокорреляционная функция скорости");
-        // Chart4.Plot.SetAxisLimits(xMin: 0, xMax: (zt.Length - 1) * _atomic.dt * 1e12, yMin: -1, yMax: 1);
-        // Chart4.Plot.AddHorizontalLine(0, Color.FromArgb(120, Color.Black));
-        // Chart4.Plot.AddVerticalLine(0, Color.FromArgb(200, Color.Black));
-        // Chart4.Plot.Legend(location: Alignment.UpperRight);
-        // Chart4.Refresh();
+        var zt = _atomic.GetAcfs(out var norm);
+        Chart4.Plot.AddSignal(zt, 1 / (_atomic.dt * 1e12), Color.Green, "Автокорреляционная функция скорости");
+        Chart4.Plot.SetAxisLimits(xMin: 0, xMax: (zt.Length - 1) * _atomic.dt * 1e12, yMin: -1, yMax: 1);
+        Chart4.Plot.AddHorizontalLine(0, Color.FromArgb(120, Color.Black));
+        Chart4.Plot.AddVerticalLine(0, Color.FromArgb(200, Color.Black));
+        Chart4.Plot.Legend(location: Alignment.UpperRight);
+        Chart4.Refresh();
 
         // Вывод информации в Rtb.
-        // var d1 = double.Round(_atomic.GetSelfDiffCoefFromAcf(zt, norm) * 1e9, 5);
-        // var d2 = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints, out _) * 1e9, 5);
-        // var d3 = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints[1], _msdPoints[_msdPoints.Count - 1]) * 1e9, 5);
-        // RtbOutputInfo.AppendText($"\n{double.Round(_averT, 3)} К - средняя температура");
-        // RtbOutputInfo.AppendText($"\n{double.Round(_averP, 1)} Па - среднее давление");
-        // RtbOutputInfo.AppendText($"\nDₛ ≈ {d1}•10⁻⁵ см²/с - коэф. самодифузии (полученный через АКФ)");
-        // RtbOutputInfo.AppendText($"\nDₛ ≈ {d2}•10⁻⁵ см²/с - коэф. самодифузии (полученный через средний квадрат смещения (МНК)) ");
-        // RtbOutputInfo.AppendText($"\nDₛ ≈ {d3}•10⁻⁵ см²/с - коэф. самодифузии (полученный через средний квадрат смещения (грубо)) ");
+        var d1 = double.Round(_atomic.GetSelfDiffCoefFromAcf(zt, norm) * 1e9, 5);
+        var d2 = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints, out _) * 1e9, 5);
+        var d3 = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints[1], _msdPoints[_msdPoints.Count - 1]) * 1e9, 5);
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d1}•10⁻⁵ см²/с - коэф. самодифузии (полученный через АКФ)\n");
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d2}•10⁻⁵ см²/с - коэф. самодифузии (полученный через средний квадрат смещения (МНК))\n");
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d3}•10⁻⁵ см²/с - коэф. самодифузии (полученный через средний квадрат смещения (грубо))\n");
 
         _isNewSystem = false;
         BtnStartCalculation.IsEnabled = true;
@@ -366,7 +375,6 @@ public partial class MainWindow
         BtnToBegin.IsEnabled = false;
         BtnStepBack.IsEnabled = false;
         BtnPlayTimer.IsEnabled = true;
-        BtnPauseTimer.IsEnabled = false;
         BtnStepForward.IsEnabled = true;
         BtnToEnd.IsEnabled = true;
         BtnFaster.IsEnabled = false;
