@@ -79,5 +79,8 @@ public class SceneManager
                 (positons[i].Y - l / 2 - _initPosAtoms[i].Y) * 1e9,
                 (positons[i].Z - l / 2 - _initPosAtoms[i].Z) * 1e9
             );
+        ((BoxVisual3D)Viewport3D.Items[positons.Count]).Length = l * 1e9;
+        ((BoxVisual3D)Viewport3D.Items[positons.Count]).Width = l * 1e9;
+        ((BoxVisual3D)Viewport3D.Items[positons.Count]).Height = l * 1e9;
     }
 }

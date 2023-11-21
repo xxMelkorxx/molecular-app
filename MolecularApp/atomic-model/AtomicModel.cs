@@ -84,7 +84,7 @@ public partial class AtomicModel
     /// <summary>
     /// Параметр решётки сплава (м).
     /// </summary>
-    public double SystemLattice { get; }
+    public double SystemLattice { get; set; }
 
     // Параметры симуляции.
     /// <summary>

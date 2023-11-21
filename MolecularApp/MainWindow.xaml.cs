@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Drawing;
+using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using ScottPlot;
@@ -19,12 +20,16 @@ public partial class MainWindow
     private readonly System.Windows.Forms.Timer _timer;
     private Dictionary<string, object> _params;
     private List<List<XYZ>> _positionsAtomsList;
+    private List<double> _boxSizeValues;
     private List<PointD> _msdPoints;
     private double _averT, _averP;
-    private bool _isDisplacement, _isSnapshot, _isNormSpeeds, _isNewSystem;
+    private bool _isDisplacement, _isSnapshot, _isNormSpeeds, _isNewSystem, _isChangeBoxSize;
     private double _yMaxRb;
     private int _initStep;
     private AtomType _firstAtom, _secondAtom;
+    private double _l0;
+
+    private const string saveImagePath = "S:\\SerBor\\Научка\\ImageResults";
 
     public MainWindow()
     {
@@ -130,9 +135,10 @@ public partial class MainWindow
 
             // Запоминание позиции атомов на 0-ом шаге.
             _positionsAtomsList = new List<List<XYZ>> { _atomic.GetPosAtoms() };
+            _boxSizeValues = new List<double> { _atomic.BoxSize };
 
             // Отрисовка атомов на сцене.
-            _scene.CreateScene(_positionsAtomsList.First(), _atomic.BoxSize, _atomic.GetRadiusAtom() / 2d);
+            _scene.CreateScene(_positionsAtomsList.First(), _boxSizeValues.First(), _atomic.GetRadiusAtom() / 2d);
 
             // Вывод начальной информации.
             RtbOutputInfo.AppendText(InitInfoSystem());
@@ -184,6 +190,7 @@ public partial class MainWindow
         _params["stepRt"] = NudStepMsd.Value;
         _params["T"] = NudTemperature.Value;
         _params["stepNorm"] = NudStepNorm.Value;
+        _params["leCoef"] = NudLeСoef.Value;
 
         _atomic.dt = (NudTimeStep.Value ?? 0.01) * 1e-12;
         _atomic.CountNumberAcf = (NudCountNumberAcf.Value ?? 150) + 1;
@@ -193,6 +200,7 @@ public partial class MainWindow
         // Инициализация массива среднего квадрата смещения.
         _msdPoints = new List<PointD> { new(0, 0) };
         _averT = 0;
+        _l0 = _atomic.SystemLattice;
 
         // Очистка графиков.
         Chart1.Plot.Clear();
@@ -215,6 +223,21 @@ public partial class MainWindow
         RtbOutputInfo.AppendText(TableHeader());
         RtbOutputInfo.AppendText(TableData(_initStep - 1, 1));
         RtbOutputInfo.ScrollToEnd();
+
+        // Создание каталога, для сохранения данных.
+        if (_isNewSystem)
+        {
+            var saveDirectory = new DirectoryInfo(
+                $"{saveImagePath}\\Results_{DateTime.Now.ToString("ddmmyyyy_hhmmss")}_{_firstAtom}{_secondAtom}_{(int)(_atomic.SecondFraction * 100)}_{(int)(_atomic.FisrtFraction * 100)}_{_atomic.CountAtoms}"
+            );
+            if (!saveDirectory.Exists)
+                saveDirectory.Create();
+            saveDirectory.CreateSubdirectory("Energy");
+            saveDirectory.CreateSubdirectory("Rad");
+            saveDirectory.CreateSubdirectory("Msd");
+            saveDirectory.CreateSubdirectory("Acf");
+            _params["saveDirectory"] = saveDirectory.FullName;
+        }
 
         // Запуск расчётов.
         _bgWorkerCalculation.RunWorkerAsync();
@@ -253,6 +276,10 @@ public partial class MainWindow
                 return;
             }
 
+            // Расширение расчётной ячейки от температуры.
+            if (_isChangeBoxSize)
+                _atomic.SystemLattice = _l0 * (1 + (double)_params["leCoef"] * 1e-6 * _atomic.T);
+
             // Расчёт шага методом Верле.
             _atomic.Verlet();
 
@@ -266,6 +293,7 @@ public partial class MainWindow
             _averT += _atomic.T;
             _averP += _atomic.P1;
             _positionsAtomsList.Add(_atomic.GetPosAtoms());
+            _boxSizeValues.Add(_atomic.BoxSize);
 
             // Вывод информации в UI.
             if ((_isSnapshot && i % snapshotStep == 0) || i == _initStep + countStep - 1)
@@ -334,6 +362,10 @@ public partial class MainWindow
         Chart1.Plot.Margins(x: 0.0, y: 0.6);
         Chart1.Plot.Legend(location: Alignment.UpperRight);
         Chart1.Refresh();
+        Chart1.Plot.SaveFig(
+            $"{_params["saveDirectory"]}\\Energy\\Steps_{_initStep - 1}_T_{((double)_params["T"]).ToString("F1")}.png",
+            width: 1500, height: 1200
+        );
 
         // Отрисовка графика радиального распределения.
         var rd = _atomic.GetRadialDistribution();
@@ -342,6 +374,10 @@ public partial class MainWindow
         Chart2.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.SystemLattice * 1e9 * 0.726, yMin: 0, yMax: rd.Max(p => p.Y) * 1.1);
         Chart2.Plot.Legend(location: Alignment.UpperRight);
         Chart2.Refresh();
+        Chart2.Plot.SaveFig(
+            $"{_params["saveDirectory"]}\\Rad\\Steps_{_initStep - 1}_T_{((double)_params["T"]).ToString("F0")}.png",
+            width: 1500, height: 1200
+        );
 
         // Отрисовка графика среднего квадрата смещения распределения.
         if (_msdPoints.Count != 1)
@@ -350,6 +386,10 @@ public partial class MainWindow
             Chart3.Plot.SetAxisLimits(xMin: 0, xMax: _msdPoints.Max(p => p.X * 1e12), yMin: 0, yMax: (_msdPoints.Max(p => p.Y * 1e18) < 1e-10 ? 0.1 : _msdPoints.Max(p => p.Y * 1e18)) * 1.5);
             Chart3.Plot.Legend(location: Alignment.UpperRight);
             Chart3.Refresh();
+            Chart3.Plot.SaveFig(
+                $"{_params["saveDirectory"]}\\Msd\\Steps_{_initStep - 1}_T_{((double)_params["T"]).ToString("F0")}.png",
+                width: 1500, height: 1200
+            );
         }
 
         // Отрисовка графика АКФ скорости.
@@ -360,6 +400,10 @@ public partial class MainWindow
         Chart4.Plot.AddVerticalLine(0, Color.FromArgb(200, Color.Black));
         Chart4.Plot.Legend(location: Alignment.UpperRight);
         Chart4.Refresh();
+        Chart4.Plot.SaveFig(
+            $"{_params["saveDirectory"]}\\Acf\\Steps_{_initStep - 1}_T_{((double)_params["T"]).ToString("F0")}.png",
+            width: 1500, height: 1200
+        );
 
         // Вывод информации в Rtb.
         var d1 = double.Round(_atomic.GetSelfDiffCoefFromAcf(zt, norm) * 1e9, 5);
@@ -368,6 +412,9 @@ public partial class MainWindow
         RtbOutputInfo.AppendText($"Dₛ ≈ {d1}•10⁻⁵ см²/с - коэф. самодифузии (полученный через АКФ)\n");
         RtbOutputInfo.AppendText($"Dₛ ≈ {d2}•10⁻⁵ см²/с - коэф. самодифузии (полученный через средний квадрат смещения (МНК))\n");
         RtbOutputInfo.AppendText($"Dₛ ≈ {d3}•10⁻⁵ см²/с - коэф. самодифузии (полученный через средний квадрат смещения (грубо))\n");
+
+        // Звуковое оповещение.
+        AlarmBeep(500, 500, 1);
 
         _isNewSystem = false;
         BtnStartCalculation.IsEnabled = true;

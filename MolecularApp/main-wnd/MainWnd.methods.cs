@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using ScottPlot;
 using ScottPlot.Control;
@@ -8,18 +7,6 @@ namespace MolecularApp;
 
 public partial class MainWindow
 {
-    private class FindPrimesInput
-    {
-        public List<object> Args;
-
-        public FindPrimesInput(IEnumerable<object> args)
-        {
-            Args = new List<object>();
-            foreach (var arg in args)
-                Args.Add(arg);
-        }
-    }
-
     private static void SetUpChart(IPlotControl chart, string title, string labelX, string labelY)
     {
         chart.Plot.Title(title);
@@ -41,7 +28,7 @@ public partial class MainWindow
     private string InitInfoSystem()
     {
         return "Структура создана...\n" +
-               $"Сплав SnGe: {_atomic.SecondFraction * 100} %:{_atomic.FisrtFraction * 100} %\n" +
+               $"Сплав SnGe: {_atomic.SecondFraction * 100}%:{_atomic.FisrtFraction * 100}%\n" +
                $"Размер структуры (Nx/Ny/Nz) - {_atomic.Size}/{_atomic.Size}/{_atomic.Size}\n" +
                $"Размер структуры (Lx/Ly/Lz) - {(_atomic.BoxSize * 1e9).ToString("F3")}/{(_atomic.BoxSize * 1e9).ToString("F3")}/{(_atomic.BoxSize * 1e9).ToString("F3")} нм\n" +
                $"Объём - {(_atomic.V * 1e27).ToString("F5")} нм³\n" +
@@ -63,10 +50,11 @@ public partial class MainWindow
         return $"{"Шаг".PadLeft(6)} |" +
                $"{"Кин.энергия(эВ)".PadLeft(16)} |" +
                $"{"Пот.энергия(эВ)".PadLeft(16)} |" +
-               $"{"Полн.энергия(эВ)".PadLeft(17)} |\n";
-               // + $"{"Температура(К)".PadLeft(15)} |"
-               // + $"{"Давление 1(Па)".PadLeft(15)} |"
-               // + $"{"Давление 2(Па)".PadLeft(15)} |\n";
+               $"{"Полн.энергия(эВ)".PadLeft(17)} |" +
+               $"{"Температура(К)".PadLeft(15)} |" +
+               $"{"Давление 1(Па)".PadLeft(15)} |" +
+               $"{"Объём(нм³)".PadLeft(11)} |\n";
+        // + $"{"Давление 2(Па)".PadLeft(15)} |\n";
     }
 
     /// <summary>
@@ -80,10 +68,11 @@ public partial class MainWindow
         return $"{i.ToString().PadLeft(6)} |" +
                $"{_atomic.Ke.ToString("F5").PadLeft(16)} |" +
                $"{_atomic.Pe.ToString("F5").PadLeft(16)} |" +
-               $"{_atomic.Fe.ToString("F5").PadLeft(17)} |\n";
-               // + $"{_atomic.T.ToString("F1").PadLeft(15)} |"
-               // + $"{Math.Round(_atomic.P1).ToString("F0").PadLeft(15)} |\n";
-               // + $"{(_atomic.P2 / nsnap).ToString("F1").PadLeft(15)} |\n";
+               $"{_atomic.Fe.ToString("F5").PadLeft(17)} |" +
+               $"{_atomic.T.ToString("F1").PadLeft(15)} |" +
+               $"{Math.Round(_atomic.P1).ToString("F0").PadLeft(15)} |" +
+               $"{(_atomic.V * 1e27).ToString("F5").PadLeft(11)} |\n";
+        // + $"{(_atomic.P2 / nsnap).ToString("F1").PadLeft(15)} |\n";
     }
 
     /// <summary>

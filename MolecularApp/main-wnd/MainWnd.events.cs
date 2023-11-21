@@ -29,6 +29,17 @@ public partial class MainWindow
         NudSnapshotStep.IsEnabled = false;
     }
 
+
+    private void OnCheckedCbIsChangeBoxSize(object sender, RoutedEventArgs e)
+    {
+        _isChangeBoxSize = true;
+    }
+
+    private void OnUncheckedCbIsChangeBoxSize(object sender, RoutedEventArgs e)
+    {
+        _isChangeBoxSize = false;
+    }
+
     private void OnCheckedIsRenormSpeeds(object sender, RoutedEventArgs e)
     {
         _isNormSpeeds = true;

@@ -162,7 +162,7 @@
                     </WrapPanel>
 
                     <Label HorizontalAlignment="Right" Margin="0 5 0 0">Характеристики сплава</Label>
-                    <WrapPanel HorizontalAlignment="Right" >
+                    <WrapPanel HorizontalAlignment="Right">
                         <!-- <Label>Тип атома</Label> -->
                         <ComboBox Name="ComboBoxFirstTypeAtoms" SelectedIndex="0"
                                   Width="50" Height="25" IsReadOnly="True"
@@ -193,7 +193,7 @@
                 <StackPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Временной шаг</Label>
-                        <xctk:DoubleUpDown Name="NudTimeStep" TextAlignment="Right" Width="75" Height="25" Minimum="0.001" Maximum="1" Increment="0.001" Value="0.01" FormatString="F3"/>
+                        <xctk:DoubleUpDown Name="NudTimeStep" TextAlignment="Right" Width="75" Height="25" Minimum="0.001" Maximum="1" Increment="0.001" Value="0.01" FormatString="F3" />
                         <Label>пс</Label>
                     </WrapPanel>
 
@@ -212,7 +212,7 @@
                                             Minimum="1" Maximum="10000" Increment="100" Value="100"
                                             ValueChanged="OnValueChangedNudCountStep" />
                     </WrapPanel>
-                    
+
                     <CheckBox Name="CbIsSnapshot"
                               HorizontalAlignment="Right" Margin="0 5 0 0"
                               Checked="OnCheckedIsSnapshot"
@@ -233,6 +233,20 @@
                         <xctk:IntegerUpDown Name="NudStepMsd"
                                             TextAlignment="Right" Width="100" Height="25"
                                             Minimum="10" Maximum="10000" Increment="1000" Value="100" />
+                    </WrapPanel>
+
+                    <CheckBox Name="CbIsChangeBoxSize"
+                              HorizontalAlignment="Right" Margin="0 5 0 0"
+                              Checked="OnCheckedCbIsChangeBoxSize"
+                              Unchecked="OnUncheckedCbIsChangeBoxSize">
+                        Изменять размер расчётной ячейки?
+                    </CheckBox>
+
+                    <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
+                        <Label>Коэф. линейного расширения</Label>
+                        <xctk:DoubleUpDown Name="NudLeСoef"
+                                           TextAlignment="Right" Width="100" Height="25"
+                                           Minimum="-1" Maximum="100" Increment="0.5" Value="5" FormatString="F1" />
                     </WrapPanel>
                 </StackPanel>
             </GroupBox>
