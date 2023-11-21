@@ -130,26 +130,28 @@ public partial class AtomicModel
     /// </summary>
     /// <param name="size"></param>
     /// <param name="firstTypeAtom"></param>
+    /// <param name="fisrtFraction"></param>
     /// <param name="secondTypeAtom"></param>
-    public AtomicModel(int size, AtomType firstTypeAtom, AtomType secondTypeAtom)
+    /// <param name="secondFraction"></param>
+    public AtomicModel(int size, AtomType firstTypeAtom, double fisrtFraction, AtomType secondTypeAtom, double secondFraction)
     {
         Atoms = new List<Atom>();
         DistanceBetweenAtoms = new Dictionary<PairIndexes, double>();
         Size = size;
-        FisrtFraction = 1;
-        SecondFraction = 0;
+        FisrtFraction = fisrtFraction;
+        SecondFraction = secondFraction;
         CurrentStep = 1;
 
         // Вычисление параметра решётки системы по закону Вегарда.
         SystemLattice = Atom.GetLattice(firstTypeAtom) * FisrtFraction + Atom.GetLattice(secondTypeAtom) * SecondFraction;
-        
+
         _virial = 0;
         _rnd = new Random(Guid.NewGuid().GetHashCode());
 
         // Инициализация потенциала.
         _potential = new TersoffPotential(firstTypeAtom, secondTypeAtom);
         // Создание расчётной ячейки.
-        CreateDiamondSystem();
+        CreateDiamondSystem(firstTypeAtom, secondTypeAtom);
         // Начальный расчёт характеристик.
         InitCalculation();
 
@@ -160,21 +162,21 @@ public partial class AtomicModel
     /// <summary>
     /// Начальное размещение атомов в АЦК-решётку.
     /// </summary>
-    private void CreateDiamondSystem()
+    private void CreateDiamondSystem(AtomType firstTypeAtom, AtomType secondTypeAtom)
     {
         var idx = 0;
         for (var i = 0; i < Size; i++)
         for (var j = 0; j < Size; j++)
         for (var k = 0; k < Size; k++)
         {
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i, j, k) * SystemLattice));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.5, j, k + 0.5) * SystemLattice));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i, j + 0.5, k + 0.5) * SystemLattice));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.5, j + 0.5, k) * SystemLattice));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.25, j + 0.25, k + 0.25) * SystemLattice));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.25, j + 0.75, k + 0.75) * SystemLattice));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.75, j + 0.25, k + 0.75) * SystemLattice));
-            Atoms.Add(new Atom(++idx, AtomType.Ge, new XYZ(i + 0.75, j + 0.75, k + 0.25) * SystemLattice));
+            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i, j, k) * SystemLattice));
+            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.5, j, k + 0.5) * SystemLattice));
+            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i, j + 0.5, k + 0.5) * SystemLattice));
+            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.5, j + 0.5, k) * SystemLattice));
+            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.25, j + 0.25, k + 0.25) * SystemLattice));
+            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.25, j + 0.75, k + 0.75) * SystemLattice));
+            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.75, j + 0.25, k + 0.75) * SystemLattice));
+            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.75, j + 0.75, k + 0.25) * SystemLattice));
         }
 
         // Заполнение системы атомами олова.
@@ -182,8 +184,8 @@ public partial class AtomicModel
         for (var i = 0; i < countSwapAtoms; i++)
         {
             idx = _rnd.Next(0, CountAtoms);
-            if (Atoms[idx].Type != AtomType.Sn)
-                Atoms[idx].Type = AtomType.Sn;
+            if (Atoms[idx].Type != secondTypeAtom)
+                Atoms[idx].Type = secondTypeAtom;
             else i--;
         }
     }

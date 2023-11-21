@@ -12,7 +12,7 @@ public partial class AtomicModel
     public void Verlet()
     {
         _virial = 0;
-        
+
         // Расчёт новых положений атомов.
         Atoms.ForEach(atom =>
         {
@@ -32,7 +32,7 @@ public partial class AtomicModel
             _vtList.Clear();
         if (_vtList.Count < CountNumberAcf + CountRepeatAcf * StepRepeatAcf)
             _vtList.Add(GetVelocitiesAtoms());
-        
+
         CurrentStep++;
     }
 
@@ -60,18 +60,18 @@ public partial class AtomicModel
             for (var j = i + 1; j < CountAtoms; j++)
             {
                 var atomJ = Atoms[j];
-                var distanceSquared = SeparationSqured(atomI.Position, atomJ.Position, out _);
-                if (distanceSquared <= searchRadiusSquared)
-                {
-                    var radius = Math.Sqrt(distanceSquared);
-                    var indexes = PairIndexes.GetIndexes(atomI, atomJ);
+                var distanceSquared = SeparationSqured(atomI.Position, atomJ.Position);
+                if (distanceSquared > searchRadiusSquared)
+                    continue;
 
-                    lock (_taskLocker)
-                    {
-                        DistanceBetweenAtoms.Add(indexes, radius);
-                        atomI.Neighbours.Add(atomJ);
-                        atomJ.Neighbours.Add(atomI);
-                    }
+                var radius = Math.Sqrt(distanceSquared);
+                var indexes = PairIndexes.GetIndexes(atomI, atomJ);
+
+                lock (_taskLocker)
+                {
+                    DistanceBetweenAtoms.Add(indexes, radius);
+                    atomI.Neighbours.Add(atomJ);
+                    atomJ.Neighbours.Add(atomI);
                 }
             }
         });
@@ -86,7 +86,7 @@ public partial class AtomicModel
                 var neighI = selAtom.Neighbours[i];
                 var neighJ = selAtom.Neighbours[j];
                 var indexes = PairIndexes.GetIndexes(neighI, neighJ);
-                var distance = Separation(neighI.Position, neighJ.Position, out _);
+                var distance = Separation(neighI.Position, neighJ.Position);
 
                 lock (_taskLocker)
                     DistanceBetweenAtoms[indexes] = distance;
@@ -146,7 +146,7 @@ public partial class AtomicModel
         atom.Neighbours.ForEach(neigh =>
         {
             var indexes = PairIndexes.GetIndexes(atom, neigh);
-            atomsDistances[indexes] = Separation(shiftedPosition, neigh.Position, out _);
+            atomsDistances[indexes] = Separation(shiftedPosition, neigh.Position);
 
             neigh.Neighbours.ForEach(neighK =>
             {
@@ -184,9 +184,9 @@ public partial class AtomicModel
 
             double distance;
             if (neighI.Index == shiftedAtom.Index)
-                distance = Separation(shiftedPosition, neighJ.Position, out _);
+                distance = Separation(shiftedPosition, neighJ.Position);
             else if (neighJ.Index == shiftedAtom.Index)
-                distance = Separation(neighI.Position, shiftedPosition, out _);
+                distance = Separation(neighI.Position, shiftedPosition);
             else
                 distance = DistanceBetweenAtoms[indexes];
 
@@ -199,20 +199,18 @@ public partial class AtomicModel
     /// </summary>
     /// <param name="vec1"></param>
     /// <param name="vec2"></param>
-    /// <param name="dxdydz"></param>
     /// <returns></returns>
-    private double Separation(XYZ vec1, XYZ vec2, out XYZ dxdydz) => Math.Sqrt(SeparationSqured(vec1, vec2, out dxdydz));
+    private double Separation(XYZ vec1, XYZ vec2) => Math.Sqrt(SeparationSqured(vec1, vec2));
 
     /// <summary>
     /// Вычисление квадрата расстояния между частицами с учётом периодических граничных условий. 
     /// </summary>
     /// <param name="vec1"></param>
     /// <param name="vec2"></param>
-    /// <param name="dxdydz"></param>
     /// <returns></returns>
-    public double SeparationSqured(XYZ vec1, XYZ vec2, out XYZ dxdydz)
+    public double SeparationSqured(XYZ vec1, XYZ vec2)
     {
-        dxdydz = vec1 - vec2;
+        var dxdydz = vec1 - vec2;
 
         // Обеспечивает, что расстояние между частицами никогда не будет больше L/2.
         if (Math.Abs(dxdydz.X) > 0.5 * BoxSize)

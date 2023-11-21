@@ -97,11 +97,13 @@ public partial class MainWindow
     private void OnBackgroundWorkerDoWorkCreateModel(object sender, DoWorkEventArgs e)
     {
         // Инициализация системы.
-        _atomic = new AtomicModel((int)_params["size"], _firstAtom, _secondAtom)
-        {
-            FisrtFraction = (double)_params["firstFraction"],
-            SecondFraction = (double)_params["secondFraction"]
-        };
+        _atomic = new AtomicModel(
+            size: (int)_params["size"],
+            firstTypeAtom: _firstAtom,
+            fisrtFraction: (double)_params["firstFraction"],
+            secondTypeAtom: _secondAtom,
+            secondFraction: (double)_params["secondFraction"]
+        );
         _initStep = _atomic.CurrentStep;
         // Применение случайного смещения для атомов.
         if (_isDisplacement)
@@ -235,7 +237,7 @@ public partial class MainWindow
         var snapshotStep = (int)_params["snapshotStep"];
 
         _atomic.CurrentStep = 1;
-        
+
         // Начальная перенормировка скоростей, если она включено.
         if (_isNormSpeeds)
             _atomic.InitVelocityNormalization((double)_params["T"]);
@@ -252,7 +254,7 @@ public partial class MainWindow
             }
 
             // Расчёт шага методом Верле.
-            _atomic.Verlet(); 
+            _atomic.Verlet();
 
             // Проведение перенормировки скоростей, если она включено.
             if (_isNormSpeeds && i % (int)_params["stepNorm"] == 0)
@@ -297,7 +299,7 @@ public partial class MainWindow
                 _averT = 0;
                 _averP = 0;
             }
-            
+
             // Расчёт среднего квадрата смещения.
             if (i % (int)_params["stepRt"] == 0 || i == _initStep + countStep - 1)
                 _msdPoints.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetMsd()));
@@ -305,7 +307,7 @@ public partial class MainWindow
             // Обновление ProgressBar.
             _bgWorkerCalculation.ReportProgress(i - _initStep);
         }
-        
+
         _initStep += _atomic.CurrentStep - 1;
     }
 
@@ -332,7 +334,7 @@ public partial class MainWindow
         Chart1.Plot.Margins(x: 0.0, y: 0.6);
         Chart1.Plot.Legend(location: Alignment.UpperRight);
         Chart1.Refresh();
-        
+
         // Отрисовка графика радиального распределения.
         var rd = _atomic.GetRadialDistribution();
         Chart2.Plot.Clear();
@@ -386,10 +388,7 @@ public partial class MainWindow
     /// </summary>
     /// <param name="sender"></param>
     /// <param name="e"></param>
-    private void OnBackgroundWorkerProgressChangedCalculation(object sender, ProgressChangedEventArgs e)
-    {
-        ProgressBar.Value = e.ProgressPercentage;
-    }
+    private void OnBackgroundWorkerProgressChangedCalculation(object sender, ProgressChangedEventArgs e) { ProgressBar.Value = e.ProgressPercentage; }
 
     /// <summary>
     /// Событие отмены вычислений.
