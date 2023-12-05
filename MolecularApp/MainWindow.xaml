@@ -193,7 +193,7 @@
                 <StackPanel>
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
                         <Label>Временной шаг</Label>
-                        <xctk:DoubleUpDown Name="NudTimeStep" TextAlignment="Right" Width="75" Height="25" Minimum="0.001" Maximum="1" Increment="0.001" Value="0.01" FormatString="F3" />
+                        <xctk:DoubleUpDown Name="NudTimeStep" TextAlignment="Right" Width="75" Height="25" Minimum="0.001" Maximum="1" Increment="0.001" Value="0.001" FormatString="F3" />
                         <Label>пс</Label>
                     </WrapPanel>
 
@@ -201,7 +201,7 @@
                         <Label>Число шагов</Label>
                         <xctk:IntegerUpDown Name="NudCountStep"
                                             TextAlignment="Right" Width="100" Height="25"
-                                            Minimum="1" Maximum="10000000" Increment="100" Value="500"
+                                            Minimum="1" Maximum="10000000" Increment="500" Value="500"
                                             ValueChanged="OnValueChangedNudCountStep" />
                     </WrapPanel>
 
@@ -234,19 +234,12 @@
                                             TextAlignment="Right" Width="100" Height="25"
                                             Minimum="10" Maximum="10000" Increment="1000" Value="100" />
                     </WrapPanel>
-
-                    <CheckBox Name="CbIsChangeBoxSize"
-                              HorizontalAlignment="Right" Margin="0 5 0 0"
-                              Checked="OnCheckedCbIsChangeBoxSize"
-                              Unchecked="OnUncheckedCbIsChangeBoxSize">
-                        Изменять размер расчётной ячейки?
-                    </CheckBox>
-
+                    
                     <WrapPanel HorizontalAlignment="Right" Margin="0 5 0 0">
-                        <Label>Коэф. линейного расширения</Label>
-                        <xctk:DoubleUpDown Name="NudLeСoef"
+                        <Label>Коэф. увеличения расч. ячейки</Label>
+                        <xctk:DoubleUpDown Name="NudUpperBoxSizeСoef"
                                            TextAlignment="Right" Width="100" Height="25"
-                                           Minimum="-1" Maximum="100" Increment="0.5" Value="5" FormatString="F1" />
+                                           Minimum="1" Maximum="10" Increment="0.01" Value="1" FormatString="F2" />
                     </WrapPanel>
                 </StackPanel>
             </GroupBox>

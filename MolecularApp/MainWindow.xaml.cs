@@ -20,10 +20,9 @@ public partial class MainWindow
     private readonly System.Windows.Forms.Timer _timer;
     private Dictionary<string, object> _params;
     private List<List<XYZ>> _positionsAtomsList;
-    private List<double> _boxSizeValues;
     private List<PointD> _msdPoints;
     private double _averT, _averP;
-    private bool _isDisplacement, _isSnapshot, _isNormSpeeds, _isNewSystem, _isChangeBoxSize;
+    private bool _isDisplacement, _isSnapshot, _isNormSpeeds, _isNewSystem;
     private double _yMaxRb;
     private int _initStep;
     private AtomType _firstAtom, _secondAtom;
@@ -110,9 +109,12 @@ public partial class MainWindow
             secondFraction: (double)_params["secondFraction"]
         );
         _initStep = _atomic.CurrentStep;
+        _l0 = _atomic.SystemLattice;
+
         // Применение случайного смещения для атомов.
         if (_isDisplacement)
             _atomic.AtomsDisplacement((double)_params["displacement"]);
+        
         // Вычисление начальных характеристик системы.
         _atomic.InitCalculation();
         ((List<double>)_params["ke"]).Add(_atomic.Ke);
@@ -135,10 +137,9 @@ public partial class MainWindow
 
             // Запоминание позиции атомов на 0-ом шаге.
             _positionsAtomsList = new List<List<XYZ>> { _atomic.GetPosAtoms() };
-            _boxSizeValues = new List<double> { _atomic.BoxSize };
 
             // Отрисовка атомов на сцене.
-            _scene.CreateScene(_positionsAtomsList.First(), _boxSizeValues.First(), _atomic.GetRadiusAtom() / 2d);
+            _scene.CreateScene(_positionsAtomsList.First(), _atomic.BoxSize, _atomic.GetRadiusAtom() / 2d);
 
             // Вывод начальной информации.
             RtbOutputInfo.AppendText(InitInfoSystem());
@@ -190,8 +191,10 @@ public partial class MainWindow
         _params["stepRt"] = NudStepMsd.Value;
         _params["T"] = NudTemperature.Value;
         _params["stepNorm"] = NudStepNorm.Value;
-        _params["leCoef"] = NudLeСoef.Value;
 
+        // Расширение расчётной ячейки от температуры.
+        var coefUp = NudUpperBoxSizeСoef.Value ?? 1d;
+        _atomic.SystemLattice = _l0 * coefUp;
         _atomic.dt = (NudTimeStep.Value ?? 0.01) * 1e-12;
         _atomic.CountNumberAcf = (NudCountNumberAcf.Value ?? 150) + 1;
         _atomic.CountRepeatAcf = NudCountRepeatAcf.Value ?? 5;
@@ -200,8 +203,7 @@ public partial class MainWindow
         // Инициализация массива среднего квадрата смещения.
         _msdPoints = new List<PointD> { new(0, 0) };
         _averT = 0;
-        _l0 = _atomic.SystemLattice;
-
+        
         // Очистка графиков.
         Chart1.Plot.Clear();
         Chart1.Plot.SetAxisLimits(
@@ -238,7 +240,12 @@ public partial class MainWindow
             saveDirectory.CreateSubdirectory("Acf");
             _params["saveDirectory"] = saveDirectory.FullName;
         }
-
+        
+        // Запоминание позиций атомов.
+        _positionsAtomsList = new List<List<XYZ>> { _atomic.GetPosAtoms() };
+        GC.Collect();
+        SliderTimeStep.Value = 0;
+        
         // Запуск расчётов.
         _bgWorkerCalculation.RunWorkerAsync();
     }
@@ -276,10 +283,6 @@ public partial class MainWindow
                 return;
             }
 
-            // Расширение расчётной ячейки от температуры.
-            if (_isChangeBoxSize)
-                _atomic.SystemLattice = _l0 * (1 + (double)_params["leCoef"] * 1e-6 * _atomic.T);
-
             // Расчёт шага методом Верле.
             _atomic.Verlet();
 
@@ -293,7 +296,6 @@ public partial class MainWindow
             _averT += _atomic.T;
             _averP += _atomic.P1;
             _positionsAtomsList.Add(_atomic.GetPosAtoms());
-            _boxSizeValues.Add(_atomic.BoxSize);
 
             // Вывод информации в UI.
             if ((_isSnapshot && i % snapshotStep == 0) || i == _initStep + countStep - 1)
