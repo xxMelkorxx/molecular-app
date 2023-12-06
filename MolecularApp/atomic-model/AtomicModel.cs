@@ -58,11 +58,11 @@ public partial class AtomicModel
     public double P1 => (Ke * eV + _virial / CountAtoms) / (3 * V);
 
     private double _virial;
-
+    
     /// <summary>
     /// Давление системы (Па).
     /// </summary>
-    public double P2 => (Flux.X + Flux.Y + Flux.Z) / (6 * BoxSize * BoxSize * dt);
+    public double P2 => (Flux.X + Flux.Y + Flux.Z) / (6d * BoxSize * BoxSize * dt);
 
     public XYZ Flux;
 
@@ -141,6 +141,7 @@ public partial class AtomicModel
         FisrtFraction = fisrtFraction;
         SecondFraction = secondFraction;
         CurrentStep = 1;
+        Flux = XYZ.Zero;
 
         // Вычисление параметра решётки системы по закону Вегарда.
         SystemLattice = Atom.GetLattice(firstTypeAtom) * FisrtFraction + Atom.GetLattice(secondTypeAtom) * SecondFraction;

@@ -15,7 +15,6 @@ public partial class AtomicModel
         Atoms.ForEach(atom =>
         {
             var displacement = (-1 * XYZ.One + 2 * new XYZ(_rnd.NextDouble(), _rnd.NextDouble(), _rnd.NextDouble())) * k * SystemLattice;
-            Flux = XYZ.Zero;
             atom.Position = Periodic(atom.Position + displacement);
             atom.PositionNp += displacement;
         });
@@ -53,6 +52,7 @@ public partial class AtomicModel
         
         var beta = Math.Sqrt(3 * CountAtoms * kB * temp / sumKE);
         Atoms.ForEach(atom => atom.Velocity *= beta);
+        PulseZeroing();
     }
 
     /// <summary>

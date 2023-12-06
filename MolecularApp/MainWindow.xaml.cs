@@ -24,7 +24,7 @@ public partial class MainWindow
     private double _averT, _averP;
     private bool _isDisplacement, _isSnapshot, _isNormSpeeds, _isNewSystem;
     private double _yMaxRb;
-    private int _initStep;
+    private int _initStep, _iter;
     private AtomType _firstAtom, _secondAtom;
     private double _l0;
 
@@ -199,10 +199,13 @@ public partial class MainWindow
         _atomic.CountNumberAcf = (NudCountNumberAcf.Value ?? 150) + 1;
         _atomic.CountRepeatAcf = NudCountRepeatAcf.Value ?? 5;
         _atomic.StepRepeatAcf = NudStepRepeatAcf.Value ?? 10;
+        _atomic.PulseZeroing();
 
         // Инициализация массива среднего квадрата смещения.
         _msdPoints = new List<PointD> { new(0, 0) };
         _averT = 0;
+        _averP = 0;
+        _iter = 0;
         
         // Очистка графиков.
         Chart1.Plot.Clear();
@@ -295,6 +298,7 @@ public partial class MainWindow
             ((List<double>)_params["fe"]).Add(_atomic.Fe);
             _averT += _atomic.T;
             _averP += _atomic.P1;
+            _iter++;
             _positionsAtomsList.Add(_atomic.GetPosAtoms());
 
             // Вывод информации в UI.
@@ -303,7 +307,6 @@ public partial class MainWindow
                 {
                     RtbOutputInfo.AppendText(TableData(i, _isSnapshot ? snapshotStep : countStep));
                     RtbOutputInfo.ScrollToEnd();
-                    _atomic.Flux = XYZ.Zero;
 
                     // Настройка и отрисовка графика радиального распределения.
                     var rd = _atomic.GetRadialDistribution();
@@ -318,16 +321,19 @@ public partial class MainWindow
                     Chart2.Refresh();
                 });
 
-            if (i % tempStep == 0)
+            if (_iter == tempStep)
             {
                 Application.Current.Dispatcher.Invoke(DispatcherPriority.Send, () =>
                 {
-                    RtbOutputInfo.AppendText($"\n{Math.Round(_averT / tempStep, 3)} К - средняя температура");
-                    RtbOutputInfo.AppendText($"\n{Math.Round(_averP / tempStep)} Па - среднее давление\n\n");
+                    RtbOutputInfo.AppendText($"\n{(_averT / tempStep).ToString("F1")} К - средняя температура");
+                    RtbOutputInfo.AppendText($"\n{(_averP / tempStep / 1e6).ToString("F1")} МПа - среднее давление (через вириал)");
+                    RtbOutputInfo.AppendText($"\n{(_atomic.P2 / tempStep / 1e6).ToString("F1")} МПа - среднее давление\n\n");
                     RtbOutputInfo.ScrollToEnd();
                 });
                 _averT = 0;
                 _averP = 0;
+                _atomic.Flux = XYZ.Zero;
+                _iter = 0;
             }
 
             // Расчёт среднего квадрата смещения.

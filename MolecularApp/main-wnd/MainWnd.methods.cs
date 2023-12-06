@@ -52,7 +52,7 @@ public partial class MainWindow
                $"{"Пот.энергия(эВ)".PadLeft(16)} |" +
                $"{"Полн.энергия(эВ)".PadLeft(17)} |" +
                $"{"Температура(К)".PadLeft(15)} |" +
-               $"{"Давление 1(Па)".PadLeft(15)} |" +
+               $"{"Давление (МПа)".PadLeft(15)} |" +
                $"{"Объём(нм³)".PadLeft(11)} |\n";
         // + $"{"Давление 2(Па)".PadLeft(15)} |\n";
     }
@@ -70,7 +70,7 @@ public partial class MainWindow
                $"{_atomic.Pe.ToString("F5").PadLeft(16)} |" +
                $"{_atomic.Fe.ToString("F5").PadLeft(17)} |" +
                $"{_atomic.T.ToString("F1").PadLeft(15)} |" +
-               $"{Math.Round(_atomic.P1).ToString("F0").PadLeft(15)} |" +
+               $"{(_atomic.P1 / 1e6).ToString("F1").PadLeft(15)} |" +
                $"{(_atomic.V * 1e27).ToString("F5").PadLeft(11)} |\n";
         // + $"{(_atomic.P2 / nsnap).ToString("F1").PadLeft(15)} |\n";
     }
