@@ -58,7 +58,7 @@ public partial class AtomicModel
     public double P1 => (Ke * eV + _virial / CountAtoms) / (3 * V);
 
     private double _virial;
-    
+
     /// <summary>
     /// Давление системы (Па).
     /// </summary>
@@ -72,14 +72,24 @@ public partial class AtomicModel
     public double V => BoxSize * BoxSize * BoxSize;
 
     /// <summary>
+    /// Первый тип атомов в сплаве.
+    /// </summary>
+    public AtomType FirstAtomType { get; }
+
+    /// <summary>
+    /// Второй тип атомов в сплаве.
+    /// </summary>
+    public AtomType SecondAtomType { get; }
+
+    /// <summary>
     /// Доля первого элемента в сплаве.
     /// </summary>
-    public double FisrtFraction { get; set; }
+    public double FisrtFraction { get; }
 
     /// <summary>
     /// Доля второго элемента в сплаве.
     /// </summary>
-    public double SecondFraction { get; set; }
+    public double SecondFraction { get; }
 
     /// <summary>
     /// Параметр решётки сплава (м).
@@ -122,7 +132,7 @@ public partial class AtomicModel
     private readonly IPotential _potential;
 
     private readonly Random _rnd;
-    private List<XYZ> _rt0;
+    private List<XYZ> _rt0, _rt01, _rt02;
     private List<List<XYZ>> _vtList;
 
     /// <summary>
@@ -138,13 +148,15 @@ public partial class AtomicModel
         Atoms = new List<Atom>();
         DistanceBetweenAtoms = new Dictionary<PairIndexes, double>();
         Size = size;
+        FirstAtomType = firstTypeAtom;
+        SecondAtomType = secondTypeAtom;
         FisrtFraction = fisrtFraction;
         SecondFraction = secondFraction;
         CurrentStep = 1;
         Flux = XYZ.Zero;
 
         // Вычисление параметра решётки системы по закону Вегарда.
-        SystemLattice = Atom.GetLattice(firstTypeAtom) * FisrtFraction + Atom.GetLattice(secondTypeAtom) * SecondFraction;
+        SystemLattice = Atom.GetLattice(firstTypeAtom) * fisrtFraction + Atom.GetLattice(secondTypeAtom) * secondFraction;
 
         _virial = 0;
         _rnd = new Random(Guid.NewGuid().GetHashCode());
@@ -156,7 +168,10 @@ public partial class AtomicModel
         // Начальный расчёт характеристик.
         InitCalculation();
 
+        // Получение начальных координат без учёта ПГУ для первого типа атома и для второго и общий.
         _rt0 = GetPosNpAtoms();
+        _rt01 = GetPosNpFirstAtoms();
+        _rt02 = GetPosNpSecondAtoms();
         _vtList = new List<List<XYZ>> { GetVelocitiesAtoms() };
     }
 

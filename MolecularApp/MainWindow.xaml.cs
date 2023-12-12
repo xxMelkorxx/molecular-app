@@ -19,8 +19,8 @@ public partial class MainWindow
     private readonly BackgroundWorker _bgWorkerCreateModel, _bgWorkerCalculation;
     private readonly System.Windows.Forms.Timer _timer;
     private Dictionary<string, object> _params;
-    private List<List<XYZ>> _positionsAtomsList;
-    private List<PointD> _msdPoints;
+    private List<List<AtomItem>> _atomItemsList;
+    private List<PointD> _msdPoints1, _msdPoints2; // _msdPoints;
     private double _averT, _averP;
     private bool _isDisplacement, _isSnapshot, _isNormSpeeds, _isNewSystem;
     private double _yMaxRb;
@@ -114,7 +114,7 @@ public partial class MainWindow
         // Применение случайного смещения для атомов.
         if (_isDisplacement)
             _atomic.AtomsDisplacement((double)_params["displacement"]);
-        
+
         // Вычисление начальных характеристик системы.
         _atomic.InitCalculation();
         ((List<double>)_params["ke"]).Add(_atomic.Ke);
@@ -136,10 +136,10 @@ public partial class MainWindow
             _isNewSystem = true;
 
             // Запоминание позиции атомов на 0-ом шаге.
-            _positionsAtomsList = new List<List<XYZ>> { _atomic.GetPosAtoms() };
+            _atomItemsList = new List<List<AtomItem>> { _atomic.GetAtomItems() };
 
             // Отрисовка атомов на сцене.
-            _scene.CreateScene(_positionsAtomsList.First(), _atomic.BoxSize, _atomic.GetRadiusAtom() / 2d);
+            _scene.CreateScene(_atomItemsList.First(), _atomic.BoxSize, _atomic.GetRadiusAtom() / 2d);
 
             // Вывод начальной информации.
             RtbOutputInfo.AppendText(InitInfoSystem());
@@ -202,11 +202,13 @@ public partial class MainWindow
         _atomic.PulseZeroing();
 
         // Инициализация массива среднего квадрата смещения.
-        _msdPoints = new List<PointD> { new(0, 0) };
+        // _msdPoints = new List<PointD> { new(0, 0) };
+        _msdPoints1 = new List<PointD> { new(0, 0) };
+        _msdPoints2 = new List<PointD> { new(0, 0) };
         _averT = 0;
         _averP = 0;
         _iter = 0;
-        
+
         // Очистка графиков.
         Chart1.Plot.Clear();
         Chart1.Plot.SetAxisLimits(
@@ -243,12 +245,12 @@ public partial class MainWindow
             saveDirectory.CreateSubdirectory("Acf");
             _params["saveDirectory"] = saveDirectory.FullName;
         }
-        
+
         // Запоминание позиций атомов.
-        _positionsAtomsList = new List<List<XYZ>> { _atomic.GetPosAtoms() };
+        _atomItemsList = new List<List<AtomItem>> { _atomic.GetAtomItems() };
         GC.Collect();
         SliderTimeStep.Value = 0;
-        
+
         // Запуск расчётов.
         _bgWorkerCalculation.RunWorkerAsync();
     }
@@ -299,7 +301,7 @@ public partial class MainWindow
             _averT += _atomic.T;
             _averP += _atomic.P1;
             _iter++;
-            _positionsAtomsList.Add(_atomic.GetPosAtoms());
+            _atomItemsList.Add(_atomic.GetAtomItems());
 
             // Вывод информации в UI.
             if ((_isSnapshot && i % snapshotStep == 0) || i == _initStep + countStep - 1)
@@ -338,7 +340,11 @@ public partial class MainWindow
 
             // Расчёт среднего квадрата смещения.
             if (i % (int)_params["stepRt"] == 0 || i == _initStep + countStep - 1)
-                _msdPoints.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetMsd()));
+            {
+                // _msdPoints.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetMsd()));
+                _msdPoints1.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetFirstTypeAtomMsd()));
+                _msdPoints2.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetSecondTypeAtomMsd()));
+            }
 
             // Обновление ProgressBar.
             _bgWorkerCalculation.ReportProgress(i - _initStep);
@@ -388,10 +394,22 @@ public partial class MainWindow
         );
 
         // Отрисовка графика среднего квадрата смещения распределения.
-        if (_msdPoints.Count != 1)
+        if (_msdPoints1.Count != 1 && _msdPoints2.Count != 1)
         {
-            Chart3.Plot.AddSignalXY(_msdPoints.Select(p => p.X * 1e12).ToArray(), _msdPoints.Select(p => p.Y * 1e18).ToArray(), Color.Indigo, "Средний квадрат смещения");
-            Chart3.Plot.SetAxisLimits(xMin: 0, xMax: _msdPoints.Max(p => p.X * 1e12), yMin: 0, yMax: (_msdPoints.Max(p => p.Y * 1e18) < 1e-10 ? 0.1 : _msdPoints.Max(p => p.Y * 1e18)) * 1.5);
+            // Chart3.Plot.AddSignalXY(_msdPoints.Select(p => p.X * 1e12).ToArray(), _msdPoints.Select(p => p.Y * 1e18).ToArray(), Color.Indigo, "Средний квадрат смещения");
+            Chart3.Plot.AddSignalXY(
+                _msdPoints1.Select(p => p.X * 1e12).ToArray(),
+                _msdPoints1.Select(p => p.Y * 1e18).ToArray(),
+                Color.Fuchsia,
+                $"Средний квадрат смещения {_atomic.FirstAtomType}");
+            Chart3.Plot.AddSignalXY(
+                _msdPoints2.Select(p => p.X * 1e12).ToArray(),
+                _msdPoints2.Select(p => p.Y * 1e18).ToArray(),
+                Color.Teal,
+                $"Средний квадрат смещения {_atomic.SecondAtomType}"
+            );
+            // Chart3.Plot.SetAxisLimits(xMin: 0, xMax: _msdPoints.Max(p => p.X * 1e12), yMin: 0, yMax: (_msdPoints.Max(p => p.Y * 1e18) < 1e-10 ? 0.1 : _msdPoints.Max(p => p.Y * 1e18)) * 1.5);
+            Chart3.Plot.SetAxisLimits(xMin: 0, xMax: _msdPoints1.Max(p => p.X * 1e12));
             Chart3.Plot.Legend(location: Alignment.UpperRight);
             Chart3.Refresh();
             Chart3.Plot.SaveFig(
@@ -415,11 +433,19 @@ public partial class MainWindow
 
         // Вывод информации в Rtb.
         var d1 = double.Round(_atomic.GetSelfDiffCoefFromAcf(zt, norm) * 1e9, 5);
-        var d2 = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints, out _) * 1e9, 5);
-        var d3 = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints[1], _msdPoints[_msdPoints.Count - 1]) * 1e9, 5);
-        RtbOutputInfo.AppendText($"Dₛ ≈ {d1}•10⁻⁵ см²/с - коэф. самодифузии (полученный через АКФ)\n");
-        RtbOutputInfo.AppendText($"Dₛ ≈ {d2}•10⁻⁵ см²/с - коэф. самодифузии (полученный через средний квадрат смещения (МНК))\n");
-        RtbOutputInfo.AppendText($"Dₛ ≈ {d3}•10⁻⁵ см²/с - коэф. самодифузии (полученный через средний квадрат смещения (грубо))\n");
+        // var d2 = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints, out _) * 1e9, 5);
+        // var d3 = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints[1], _msdPoints[_msdPoints.Count - 1]) * 1e9, 5);
+        var d2FirstTypeAtom = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints1, out _) * 1e9, 5);
+        var d3FirstTypeAtom = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints1[1], _msdPoints1[_msdPoints1.Count - 1]) * 1e9, 5);
+        var d2SecondTypeAtom = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints2, out _) * 1e9, 5);
+        var d3SecondTypeAtom = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints2[1], _msdPoints2[_msdPoints2.Count - 1]) * 1e9, 5);
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d1}•10⁻⁵ см²/с - коэф. самодифузии (через АКФ)\n");
+        // RtbOutputInfo.AppendText($"Dₛ ≈ {d2}•10⁻⁵ см²/с - коэф. самодифузии (через МНК)\n");
+        // RtbOutputInfo.AppendText($"Dₛ ≈ {d3}•10⁻⁵ см²/с - коэф. самодифузии (через МНК (грубо))\n");
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d2FirstTypeAtom}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.FirstAtomType} (через МНК)\n");
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d3FirstTypeAtom}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.FirstAtomType} (через МНК (грубо))\n");
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d2SecondTypeAtom}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.SecondAtomType} (через МНК)\n");
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d3SecondTypeAtom}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.SecondAtomType} (через МНК (грубо))\n");
 
         // Звуковое оповещение.
         AlarmBeep(500, 500, 1);
@@ -428,7 +454,7 @@ public partial class MainWindow
         BtnStartCalculation.IsEnabled = true;
         BtnCancelCalculation.IsEnabled = false;
         SliderTimeStep.IsEnabled = true;
-        SliderTimeStep.Maximum = _positionsAtomsList.Count - 1;
+        SliderTimeStep.Maximum = _atomItemsList.Count - 1;
         BtnToBegin.IsEnabled = false;
         BtnStepBack.IsEnabled = false;
         BtnPlayTimer.IsEnabled = true;

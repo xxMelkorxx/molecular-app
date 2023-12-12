@@ -33,9 +33,9 @@ public partial class MainWindow
         }
 
         if (_isNewSystem)
-            _scene.CreateScene(_positionsAtomsList[0], _atomic.BoxSize, _atomic.GetRadiusAtom() / 2);
+            _scene.CreateScene(_atomItemsList[0], _atomic.BoxSize, _atomic.GetRadiusAtom() / 2);
         else
-            _scene.UpdatePositionsAtoms(_positionsAtomsList[(int)SliderTimeStep.Value], _atomic.BoxSize);
+            _scene.UpdatePositionsAtoms(_atomItemsList[(int)SliderTimeStep.Value], _atomic.BoxSize);
     }
 
     private void OnClickBtnToBegin(object sender, RoutedEventArgs e)

@@ -28,7 +28,7 @@ public partial class MainWindow
     private string InitInfoSystem()
     {
         return "Структура создана...\n" +
-               $"Сплав SnGe: {_atomic.SecondFraction * 100}%:{_atomic.FisrtFraction * 100}%\n" +
+               $"Сплав SnGe: {_atomic.FisrtFraction * 100}%:{_atomic.SecondFraction * 100}%\n" +
                $"Размер структуры (Nx/Ny/Nz) - {_atomic.Size}/{_atomic.Size}/{_atomic.Size}\n" +
                $"Размер структуры (Lx/Ly/Lz) - {(_atomic.BoxSize * 1e9).ToString("F3")}/{(_atomic.BoxSize * 1e9).ToString("F3")}/{(_atomic.BoxSize * 1e9).ToString("F3")} нм\n" +
                $"Объём - {(_atomic.V * 1e27).ToString("F5")} нм³\n" +

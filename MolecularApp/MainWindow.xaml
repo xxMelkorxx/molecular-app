@@ -164,7 +164,7 @@
                     <Label HorizontalAlignment="Right" Margin="0 5 0 0">Характеристики сплава</Label>
                     <WrapPanel HorizontalAlignment="Right">
                         <!-- <Label>Тип атома</Label> -->
-                        <ComboBox Name="ComboBoxFirstTypeAtoms" SelectedIndex="0"
+                        <ComboBox Name="ComboBoxFirstTypeAtoms" SelectedIndex="2"
                                   Width="50" Height="25" IsReadOnly="True"
                                   SelectionChanged="OnSelectionChangedComboBoxFirstTypeAtoms">
                             <sys:String>Si</sys:String>
@@ -172,11 +172,11 @@
                             <sys:String>Sn</sys:String>
                         </ComboBox>
                         <xctk:DoubleUpDown Name="NudFirstFraction" Width="60" Height="25" FormatString="F2" TextAlignment="Right"
-                                           Minimum="0" Maximum="1" Increment="0.01" Value="0.5"
+                                           Minimum="0" Maximum="1" Increment="0.01" Value="0.1"
                                            ValueChanged="OnValueChangedFirstFraction" />
                         <Label>:</Label>
                         <xctk:DoubleUpDown Name="NudSecondFraction" Width="60" Height="25" FormatString="F2" TextAlignment="Right"
-                                           Minimum="0" Maximum="1" Increment="0.01" Value="0.5"
+                                           Minimum="0" Maximum="1" Increment="0.01" Value="0.9"
                                            ValueChanged="OnValueChangedSecondFraction" />
                         <ComboBox Name="ComboBoxSecondTypeAtoms" SelectedIndex="1"
                                   Width="50" Height="25" IsReadOnly="True"
@@ -209,7 +209,7 @@
                         <Label>Шаг подсчёта температуры</Label>
                         <xctk:IntegerUpDown Name="NudTempStep"
                                             TextAlignment="Right" Width="100" Height="25"
-                                            Minimum="1" Maximum="10000" Increment="1000" Value="1000"
+                                            Minimum="1" Maximum="10000" Increment="500" Value="1000"
                                             ValueChanged="OnValueChangedNudCountStep" />
                     </WrapPanel>
 
@@ -223,7 +223,7 @@
                         <Label>Шаг снимков системы</Label>
                         <xctk:IntegerUpDown Name="NudSnapshotStep"
                                             TextAlignment="Right" Width="100" Height="25"
-                                            Minimum="1" Maximum="100000" Increment="1" Value="10"
+                                            Minimum="1" Maximum="100000" Increment="50" Value="250"
                                             ValueChanged="OnValueChangedNudSnapshotStep" />
                     </WrapPanel>
 
@@ -256,7 +256,7 @@
                         <Label>Температура</Label>
                         <xctk:DoubleUpDown Name="NudTemperature"
                                            TextAlignment="Right" Width="100" Height="25"
-                                           Minimum="0" Maximum="10000" Increment="10" Value="300"
+                                           Minimum="0" Maximum="10000" Increment="100" Value="1000"
                                            IsEnabled="False" />
                     </WrapPanel>
 
@@ -276,20 +276,20 @@
                         <Label>Число отсчётов</Label>
                         <xctk:IntegerUpDown Name="NudCountNumberAcf"
                                             TextAlignment="Right" Width="100" Height="25"
-                                            Minimum="50" Maximum="10000" Increment="10" Value="100"
+                                            Minimum="50" Maximum="10000" Increment="10" Value="200"
                                             ValueChanged="OnValueChangedNudCountNumberAcf" />
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right">
                         <Label>Число повторений</Label>
                         <xctk:IntegerUpDown Name="NudCountRepeatAcf"
                                             TextAlignment="Right" Width="100" Height="25"
-                                            Minimum="5" Maximum="100" Increment="5" Value="5" />
+                                            Minimum="5" Maximum="100" Increment="5" Value="10" />
                     </WrapPanel>
                     <WrapPanel HorizontalAlignment="Right">
                         <Label>Шаг повторений</Label>
                         <xctk:IntegerUpDown Name="NudStepRepeatAcf"
                                             TextAlignment="Right" Width="100" Height="25"
-                                            Minimum="5" Maximum="100" Increment="5" Value="10" />
+                                            Minimum="5" Maximum="100" Increment="5" Value="20" />
                     </WrapPanel>
                 </StackPanel>
             </GroupBox>

@@ -1,5 +1,6 @@
 ﻿using HelixToolkit.Wpf;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
 
@@ -17,10 +18,10 @@ public class SceneManager
     /// <summary>
     /// Отрисовка сцены.
     /// </summary>
-    /// <param name="positons">Список координат атомов</param>
+    /// <param name="atomItems">Список координат атомов</param>
     /// <param name="l">Размер расчётной ячейки (м)</param>
     /// <param name="radius">Радиус атомов (м)</param>
-    public void CreateScene(List<XYZ> positons, double l, double radius)
+    public void CreateScene(List<AtomItem> atomItems, double l, double radius)
     {
         var posCamera = new Point3D(-l * 3 * 1e9, l * 1e9, -l * 2 * 1e9);
         var rotateCenter = new Point3D(0, 0, 0);
@@ -42,14 +43,15 @@ public class SceneManager
         _initPosAtoms = new List<XYZ>();
 
         // Размещение атомов на сцену.
-        positons.ForEach(pos =>
+        var atomTypes = atomItems.Select(item => item.Type).Distinct().ToArray(); 
+        atomItems.ForEach(item =>
         {
-            _initPosAtoms.Add(pos - l / 2);
+            _initPosAtoms.Add(item.Position - l / 2);
             SphereVisual3D sphere = new()
             {
-                Center = new Point3D((pos.X - l / 2) * 1e9, (pos.Y - l / 2) * 1e9, (pos.Z - l / 2) * 1e9),
+                Center = new Point3D((item.Position.X - l / 2) * 1e9, (item.Position.Y - l / 2) * 1e9, (item.Position.Z - l / 2) * 1e9),
                 Radius = radius * 1e9,
-                Material = Materials.Blue
+                Material = item.Type == atomTypes.First() ? Materials.Blue : Materials.Red
             };
             Viewport3D.Items.Add(sphere);
         });
@@ -69,18 +71,18 @@ public class SceneManager
     /// <summary>
     /// Обновление положения атомов.
     /// </summary>
-    /// <param name="positons">Список координат атомов.</param>
+    /// <param name="item">Список координат атомов.</param>
     /// <param name="l">Размеры расчётной ячейки.</param>
-    public void UpdatePositionsAtoms(List<XYZ> positons, double l)
+    public void UpdatePositionsAtoms(List<AtomItem> item, double l)
     {
-        for (var i = 0; i < positons.Count; i++)
+        for (var i = 0; i < item.Count; i++)
             ((SphereVisual3D)Viewport3D.Items[i]).Transform = new TranslateTransform3D(
-                (positons[i].X - l / 2 - _initPosAtoms[i].X) * 1e9,
-                (positons[i].Y - l / 2 - _initPosAtoms[i].Y) * 1e9,
-                (positons[i].Z - l / 2 - _initPosAtoms[i].Z) * 1e9
+                (item[i].Position.X - l / 2 - _initPosAtoms[i].X) * 1e9,
+                (item[i].Position.Y - l / 2 - _initPosAtoms[i].Y) * 1e9,
+                (item[i].Position.Z - l / 2 - _initPosAtoms[i].Z) * 1e9
             );
-        ((BoxVisual3D)Viewport3D.Items[positons.Count]).Length = l * 1e9;
-        ((BoxVisual3D)Viewport3D.Items[positons.Count]).Width = l * 1e9;
-        ((BoxVisual3D)Viewport3D.Items[positons.Count]).Height = l * 1e9;
+        ((BoxVisual3D)Viewport3D.Items[item.Count]).Length = l * 1e9;
+        ((BoxVisual3D)Viewport3D.Items[item.Count]).Width = l * 1e9;
+        ((BoxVisual3D)Viewport3D.Items[item.Count]).Height = l * 1e9;
     }
 }

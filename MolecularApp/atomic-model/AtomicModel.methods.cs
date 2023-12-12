@@ -117,12 +117,22 @@ public partial class AtomicModel
     /// <summary>
     /// Получение координат атомов на текущем шаге.
     /// </summary>
-    public List<XYZ> GetPosAtoms() => Atoms.Select(atom => atom.Position).ToList();
+    public List<AtomItem> GetAtomItems() => Atoms.Select(atom => new AtomItem(atom.Type, atom.Position)).ToList();
 
     /// <summary>
     /// Получение координат атомов без учёта ПГУ на текущем шаге.
     /// </summary>
     private List<XYZ> GetPosNpAtoms() => Atoms.Select(atom => atom.PositionNp).ToList();
+    
+    /// <summary>
+    /// Получение координат первого типа атомов без учёта ПГУ на текущем шаге.
+    /// </summary>
+    private List<XYZ> GetPosNpFirstAtoms() => Atoms.Where(atom => atom.Type == FirstAtomType).Select(atom => atom.PositionNp).ToList();
+    
+    /// <summary>
+    /// Получение координат первого типа атомов без учёта ПГУ на текущем шаге.
+    /// </summary>
+    private List<XYZ> GetPosNpSecondAtoms() => Atoms.Where(atom => atom.Type == SecondAtomType).Select(atom => atom.PositionNp).ToList();
 
     /// <summary>
     /// Получение скоростей атомов.
@@ -135,6 +145,18 @@ public partial class AtomicModel
     /// </summary>
     /// <returns>Средний квадрат смещения (м²)</returns>
     public double GetMsd() => _rt0.Zip(GetPosNpAtoms(), (vec1, vec2) => (vec2 - vec1).SquaredMagnitude()).Sum() / CountAtoms;
+    
+    /// <summary>
+    /// Вычисление среднего квадрата смещения на текущем шаге.
+    /// </summary>
+    /// <returns>Средний квадрат смещения (м²)</returns>
+    public double GetFirstTypeAtomMsd() => _rt01.Zip(GetPosNpFirstAtoms(), (vec1, vec2) => (vec2 - vec1).SquaredMagnitude()).Sum() / Atoms.Count(atom => atom.Type == FirstAtomType);
+    
+    /// <summary>
+    /// Вычисление среднего квадрата смещения на текущем шаге.
+    /// </summary>
+    /// <returns>Средний квадрат смещения (м²)</returns>
+    public double GetSecondTypeAtomMsd() => _rt02.Zip(GetPosNpSecondAtoms(), (vec1, vec2) => (vec2 - vec1).SquaredMagnitude()).Sum() / Atoms.Count(atom => atom.Type == SecondAtomType);
 
     /// <summary>
     /// Расчет коэффициента самодиффузии из среднего квадрата смещения.
