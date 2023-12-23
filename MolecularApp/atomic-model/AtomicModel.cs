@@ -131,9 +131,12 @@ public partial class AtomicModel
     /// </summary>
     private readonly IPotential _potential;
 
+    public List<XYZ> rt0 { get; set; }
+    public List<XYZ> rt01 { get; set; }
+    public List<XYZ> rt02 { get; set; }
+
     private readonly Random _rnd;
-    private List<XYZ> _rt0, _rt01, _rt02;
-    private List<List<XYZ>> _vtList;
+    private readonly List<List<XYZ>> _vtList;
 
     /// <summary>
     /// Создание атомной модели.
@@ -169,9 +172,9 @@ public partial class AtomicModel
         InitCalculation();
 
         // Получение начальных координат без учёта ПГУ для первого типа атома и для второго и общий.
-        _rt0 = GetPosNpAtoms();
-        _rt01 = GetPosNpFirstAtoms();
-        _rt02 = GetPosNpSecondAtoms();
+        //rt0 = GetPosNpAtoms(0);
+        //rt01 = GetPosNpAtoms(1);
+        //rt02 = GetPosNpAtoms(2);
         _vtList = new List<List<XYZ>> { GetVelocitiesAtoms() };
     }
 
@@ -182,18 +185,18 @@ public partial class AtomicModel
     {
         var idx = 0;
         for (var i = 0; i < Size; i++)
-        for (var j = 0; j < Size; j++)
-        for (var k = 0; k < Size; k++)
-        {
-            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i, j, k) * SystemLattice));
-            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.5, j, k + 0.5) * SystemLattice));
-            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i, j + 0.5, k + 0.5) * SystemLattice));
-            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.5, j + 0.5, k) * SystemLattice));
-            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.25, j + 0.25, k + 0.25) * SystemLattice));
-            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.25, j + 0.75, k + 0.75) * SystemLattice));
-            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.75, j + 0.25, k + 0.75) * SystemLattice));
-            Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.75, j + 0.75, k + 0.25) * SystemLattice));
-        }
+            for (var j = 0; j < Size; j++)
+                for (var k = 0; k < Size; k++)
+                {
+                    Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i, j, k) * SystemLattice));
+                    Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.5, j, k + 0.5) * SystemLattice));
+                    Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i, j + 0.5, k + 0.5) * SystemLattice));
+                    Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.5, j + 0.5, k) * SystemLattice));
+                    Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.25, j + 0.25, k + 0.25) * SystemLattice));
+                    Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.25, j + 0.75, k + 0.75) * SystemLattice));
+                    Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.75, j + 0.25, k + 0.75) * SystemLattice));
+                    Atoms.Add(new Atom(++idx, firstTypeAtom, new XYZ(i + 0.75, j + 0.75, k + 0.25) * SystemLattice));
+                }
 
         // Заполнение системы атомами олова.
         var countSwapAtoms = (int)(CountAtoms * SecondFraction);

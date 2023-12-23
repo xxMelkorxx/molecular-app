@@ -49,7 +49,7 @@ public partial class AtomicModel
         var sumKE = Atoms.Sum(atom => atom.Weight * atom.Velocity.SquaredMagnitude());
         if (sumKE == 0)
             throw new DivideByZeroException();
-        
+
         var beta = Math.Sqrt(3 * CountAtoms * kB * temp / sumKE);
         Atoms.ForEach(atom => atom.Velocity *= beta);
         PulseZeroing();
@@ -94,14 +94,14 @@ public partial class AtomicModel
 
         // Подсчёт n(r).
         foreach (var atomI in Atoms)
-        foreach (var atomJ in Atoms)
-        {
-            if (atomJ.Equals(atomI)) continue;
-            var r2 = (atomI.Position - atomJ.Position).SquaredMagnitude();
-            for (var k = 0; k < rd.Length; k++)
-                if (r2 > k * k * dr2 && r2 < (k + 1) * (k + 1) * dr2)
-                    rd[k].Y++;
-        }
+            foreach (var atomJ in Atoms)
+            {
+                if (atomJ.Equals(atomI)) continue;
+                var r2 = (atomI.Position - atomJ.Position).SquaredMagnitude();
+                for (var k = 0; k < rd.Length; k++)
+                    if (r2 > k * k * dr2 && r2 < (k + 1) * (k + 1) * dr2)
+                        rd[k].Y++;
+            }
 
         // Усреднение.
         for (var i = 0; i < rd.Length; i++)
@@ -122,17 +122,26 @@ public partial class AtomicModel
     /// <summary>
     /// Получение координат атомов без учёта ПГУ на текущем шаге.
     /// </summary>
-    private List<XYZ> GetPosNpAtoms() => Atoms.Select(atom => atom.PositionNp).ToList();
-    
+    /// <param name="flag"></param>
+    /// <returns></returns>
+    public List<XYZ> GetPosNpAtoms(int flag = 0) => flag switch
+    {
+        1 => Atoms.Where(atom => atom.Type == FirstAtomType).Select(atom => atom.PositionNp).ToList(),
+        2 => Atoms.Where(atom => atom.Type == SecondAtomType).Select(atom => atom.PositionNp).ToList(),
+        _ => Atoms.Select(atom => atom.PositionNp).ToList()
+    };
+
     /// <summary>
-    /// Получение координат первого типа атомов без учёта ПГУ на текущем шаге.
+    /// Вычисление среднего квадрата смещения на текущем шаге.
     /// </summary>
-    private List<XYZ> GetPosNpFirstAtoms() => Atoms.Where(atom => atom.Type == FirstAtomType).Select(atom => atom.PositionNp).ToList();
-    
-    /// <summary>
-    /// Получение координат первого типа атомов без учёта ПГУ на текущем шаге.
-    /// </summary>
-    private List<XYZ> GetPosNpSecondAtoms() => Atoms.Where(atom => atom.Type == SecondAtomType).Select(atom => atom.PositionNp).ToList();
+    /// <param name="flag"></param>
+    /// <returns>Средний квадрат смещения (м²)</returns>
+    public double GetMsd(int flag = 0) => flag switch
+    {
+        1 => rt01.Zip(GetPosNpAtoms(flag), (vec1, vec2) => (vec2 - vec1).SquaredMagnitude()).Sum() / Atoms.Count(atom => atom.Type == FirstAtomType),
+        2 => rt02.Zip(GetPosNpAtoms(flag), (vec1, vec2) => (vec2 - vec1).SquaredMagnitude()).Sum() / Atoms.Count(atom => atom.Type == SecondAtomType),
+        _ => rt0.Zip(GetPosNpAtoms(flag), (vec1, vec2) => (vec2 - vec1).SquaredMagnitude()).Sum() / CountAtoms
+    };
 
     /// <summary>
     /// Получение скоростей атомов.
@@ -141,30 +150,12 @@ public partial class AtomicModel
     private List<XYZ> GetVelocitiesAtoms() => Atoms.Select(atom => atom.Velocity).ToList();
 
     /// <summary>
-    /// Вычисление среднего квадрата смещения на текущем шаге.
-    /// </summary>
-    /// <returns>Средний квадрат смещения (м²)</returns>
-    public double GetMsd() => _rt0.Zip(GetPosNpAtoms(), (vec1, vec2) => (vec2 - vec1).SquaredMagnitude()).Sum() / CountAtoms;
-    
-    /// <summary>
-    /// Вычисление среднего квадрата смещения на текущем шаге.
-    /// </summary>
-    /// <returns>Средний квадрат смещения (м²)</returns>
-    public double GetFirstTypeAtomMsd() => _rt01.Zip(GetPosNpFirstAtoms(), (vec1, vec2) => (vec2 - vec1).SquaredMagnitude()).Sum() / Atoms.Count(atom => atom.Type == FirstAtomType);
-    
-    /// <summary>
-    /// Вычисление среднего квадрата смещения на текущем шаге.
-    /// </summary>
-    /// <returns>Средний квадрат смещения (м²)</returns>
-    public double GetSecondTypeAtomMsd() => _rt02.Zip(GetPosNpSecondAtoms(), (vec1, vec2) => (vec2 - vec1).SquaredMagnitude()).Sum() / Atoms.Count(atom => atom.Type == SecondAtomType);
-
-    /// <summary>
     /// Расчет коэффициента самодиффузии из среднего квадрата смещения.
     /// </summary>
     /// <param name="msdPoints">Список точек среднего квадрата смещения.</param>
     /// <param name="errorRate">Погрешность коэффициента самодиффузии.</param>
     /// <returns>Коэффициент самодиффузии (м²/с).</returns>
-    public double GetSelfDiffCoefFromMsd(IEnumerable<PointD> msdPoints, out double errorRate)
+    public static double GetSelfDiffCoefFromMsd(IEnumerable<PointD> msdPoints, out double errorRate)
     {
         var msd = msdPoints.Skip(1).ToList();
         var n = msd.Count;
@@ -190,7 +181,7 @@ public partial class AtomicModel
     /// <param name="p1"></param>
     /// <param name="p2"></param>
     /// <returns>Коэффициент самодиффузии (м²/с)</returns>
-    public double GetSelfDiffCoefFromMsd(PointD p1, PointD p2) => (p2.Y - p1.Y) / (p2.X - p1.X) / 6d;
+    public static double GetSelfDiffCoefFromMsd(PointD p1, PointD p2) => (p2.Y - p1.Y) / (p2.X - p1.X) / 6d;
 
     /// <summary>
     /// Рассчёт автокорреляционной функции скорости атомов.
@@ -200,16 +191,16 @@ public partial class AtomicModel
     {
         var zt = new double[CountNumberAcf];
         for (var i = 0; i < CountRepeatAcf; i++)
-        for (var j = 0; j < CountNumberAcf; j++)
-        {
-            for (var k = 0; k < CountAtoms; k++)
-                zt[j] += k != 0
-                    ? _vtList[i * StepRepeatAcf][k].X * _vtList[j + i * StepRepeatAcf][k].X +
-                      _vtList[i * StepRepeatAcf][k].Y * _vtList[j + i * StepRepeatAcf][k].Y +
-                      _vtList[i * StepRepeatAcf][k].Z * _vtList[j + i * StepRepeatAcf][k].Z
-                    : _vtList[i * StepRepeatAcf][k].Magnitude();
-            zt[j] /= CountAtoms;
-        }
+            for (var j = 0; j < CountNumberAcf; j++)
+            {
+                for (var k = 0; k < CountAtoms; k++)
+                    zt[j] += k != 0
+                        ? _vtList[i * StepRepeatAcf][k].X * _vtList[j + i * StepRepeatAcf][k].X +
+                          _vtList[i * StepRepeatAcf][k].Y * _vtList[j + i * StepRepeatAcf][k].Y +
+                          _vtList[i * StepRepeatAcf][k].Z * _vtList[j + i * StepRepeatAcf][k].Z
+                        : _vtList[i * StepRepeatAcf][k].Magnitude();
+                zt[j] /= CountAtoms;
+            }
 
         norm = zt.Max();
         for (var i = 0; i < zt.Length; i++)

@@ -202,6 +202,8 @@ public partial class MainWindow
         _atomic.PulseZeroing();
 
         // Инициализация массива среднего квадрата смещения.
+        _atomic.rt01 = _atomic.GetPosNpAtoms(1);
+        _atomic.rt02 = _atomic.GetPosNpAtoms(2);
         // _msdPoints = new List<PointD> { new(0, 0) };
         _msdPoints1 = new List<PointD> { new(0, 0) };
         _msdPoints2 = new List<PointD> { new(0, 0) };
@@ -235,7 +237,7 @@ public partial class MainWindow
         if (_isNewSystem)
         {
             var saveDirectory = new DirectoryInfo(
-                $"{saveImagePath}\\Results_{DateTime.Now.ToString("ddmmyyyy_hhmmss")}_{_firstAtom}{_secondAtom}_{(int)(_atomic.SecondFraction * 100)}_{(int)(_atomic.FisrtFraction * 100)}_{_atomic.CountAtoms}"
+                $"{saveImagePath}\\Results_{DateTime.Now:ddmmyyyy_hhmmss}_{_firstAtom}{_secondAtom}_{(int)(_atomic.SecondFraction * 100)}_{(int)(_atomic.FisrtFraction * 100)}_{_atomic.CountAtoms}"
             );
             if (!saveDirectory.Exists)
                 saveDirectory.Create();
@@ -309,27 +311,15 @@ public partial class MainWindow
                 {
                     RtbOutputInfo.AppendText(TableData(i, _isSnapshot ? snapshotStep : countStep));
                     RtbOutputInfo.ScrollToEnd();
-
-                    // Настройка и отрисовка графика радиального распределения.
-                    var rd = _atomic.GetRadialDistribution();
-                    Chart2.Plot.Clear();
-                    Chart2.Plot.AddSignalXY(
-                        rd.Select(p => p.X * 1e9).ToArray(),
-                        rd.Select(p => p.Y).ToArray(),
-                        color: Color.Blue, label: "Радиальное распределение"
-                    );
-                    Chart2.Plot.SetAxisLimits(xMin: 0, xMax: 5 * _atomic.SystemLattice * 1e9 * 0.726, yMin: 0, yMax: _yMaxRb);
-                    Chart2.Plot.Legend(location: Alignment.UpperRight);
-                    Chart2.Refresh();
                 });
 
             if (_iter == tempStep)
             {
                 Application.Current.Dispatcher.Invoke(DispatcherPriority.Send, () =>
                 {
-                    RtbOutputInfo.AppendText($"\n{(_averT / tempStep).ToString("F1")} К - средняя температура");
-                    RtbOutputInfo.AppendText($"\n{(_averP / tempStep / 1e6).ToString("F1")} МПа - среднее давление (через вириал)");
-                    RtbOutputInfo.AppendText($"\n{(_atomic.P2 / tempStep / 1e6).ToString("F1")} МПа - среднее давление\n\n");
+                    RtbOutputInfo.AppendText($"\n{_averT / tempStep:F1} К - средняя температура");
+                    RtbOutputInfo.AppendText($"\n{_averP / tempStep / 1e6:F1} МПа - среднее давление (через вириал)");
+                    RtbOutputInfo.AppendText($"\n{_atomic.P2 / tempStep / 1e6:F1} МПа - среднее давление\n\n");
                     RtbOutputInfo.ScrollToEnd();
                 });
                 _averT = 0;
@@ -342,8 +332,8 @@ public partial class MainWindow
             if (i % (int)_params["stepRt"] == 0 || i == _initStep + countStep - 1)
             {
                 // _msdPoints.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetMsd()));
-                _msdPoints1.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetFirstTypeAtomMsd()));
-                _msdPoints2.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetSecondTypeAtomMsd()));
+                _msdPoints1.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetMsd(flag: 1)));
+                _msdPoints2.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetMsd(flag: 2)));
             }
 
             // Обновление ProgressBar.
@@ -377,7 +367,7 @@ public partial class MainWindow
         Chart1.Plot.Legend(location: Alignment.UpperRight);
         Chart1.Refresh();
         Chart1.Plot.SaveFig(
-            $"{_params["saveDirectory"]}\\Energy\\Steps_{_initStep - 1}_T_{((double)_params["T"]).ToString("F1")}.png",
+            $"{_params["saveDirectory"]}\\Energy\\Steps_{_initStep - 1}_T_{(double)_params["T"]:F1}.png",
             width: 1500, height: 1200
         );
 
@@ -389,7 +379,7 @@ public partial class MainWindow
         Chart2.Plot.Legend(location: Alignment.UpperRight);
         Chart2.Refresh();
         Chart2.Plot.SaveFig(
-            $"{_params["saveDirectory"]}\\Rad\\Steps_{_initStep - 1}_T_{((double)_params["T"]).ToString("F0")}.png",
+            $"{_params["saveDirectory"]}\\Rad\\Steps_{_initStep - 1}_T_{(double)_params["T"]:F0}.png",
             width: 1500, height: 1200
         );
 
@@ -413,7 +403,7 @@ public partial class MainWindow
             Chart3.Plot.Legend(location: Alignment.UpperRight);
             Chart3.Refresh();
             Chart3.Plot.SaveFig(
-                $"{_params["saveDirectory"]}\\Msd\\Steps_{_initStep - 1}_T_{((double)_params["T"]).ToString("F0")}.png",
+                $"{_params["saveDirectory"]}\\Msd\\Steps_{_initStep - 1}_T_{(double)_params["T"]:F0}.png",
                 width: 1500, height: 1200
             );
         }
@@ -427,25 +417,25 @@ public partial class MainWindow
         Chart4.Plot.Legend(location: Alignment.UpperRight);
         Chart4.Refresh();
         Chart4.Plot.SaveFig(
-            $"{_params["saveDirectory"]}\\Acf\\Steps_{_initStep - 1}_T_{((double)_params["T"]).ToString("F0")}.png",
+            $"{_params["saveDirectory"]}\\Acf\\Steps_{_initStep - 1}_T_{(double)_params["T"]:F0}.png",
             width: 1500, height: 1200
         );
 
         // Вывод информации в Rtb.
         var d1 = double.Round(_atomic.GetSelfDiffCoefFromAcf(zt, norm) * 1e9, 5);
-        // var d2 = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints, out _) * 1e9, 5);
-        // var d3 = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints[1], _msdPoints[_msdPoints.Count - 1]) * 1e9, 5);
-        var d2FirstTypeAtom = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints1, out _) * 1e9, 5);
-        var d3FirstTypeAtom = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints1[1], _msdPoints1[_msdPoints1.Count - 1]) * 1e9, 5);
-        var d2SecondTypeAtom = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints2, out _) * 1e9, 5);
-        var d3SecondTypeAtom = double.Round(_atomic.GetSelfDiffCoefFromMsd(_msdPoints2[1], _msdPoints2[_msdPoints2.Count - 1]) * 1e9, 5);
+        // var d2 = double.Round(AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints, out _) * 1e9, 5);
+        // var d3 = double.Round(AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints[1], _msdPoints[_msdPoints.Count - 1]) * 1e9, 5);
+        var d2FirstTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints1, out _) * 1e9;
+        var d3FirstTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints1[0], _msdPoints1[^1]) * 1e9;
+        var d2SecondTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints2, out _) * 1e9;
+        var d3SecondTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints2[0], _msdPoints2[^1]) * 1e9;
         RtbOutputInfo.AppendText($"Dₛ ≈ {d1}•10⁻⁵ см²/с - коэф. самодифузии (через АКФ)\n");
         // RtbOutputInfo.AppendText($"Dₛ ≈ {d2}•10⁻⁵ см²/с - коэф. самодифузии (через МНК)\n");
         // RtbOutputInfo.AppendText($"Dₛ ≈ {d3}•10⁻⁵ см²/с - коэф. самодифузии (через МНК (грубо))\n");
-        RtbOutputInfo.AppendText($"Dₛ ≈ {d2FirstTypeAtom}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.FirstAtomType} (через МНК)\n");
-        RtbOutputInfo.AppendText($"Dₛ ≈ {d3FirstTypeAtom}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.FirstAtomType} (через МНК (грубо))\n");
-        RtbOutputInfo.AppendText($"Dₛ ≈ {d2SecondTypeAtom}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.SecondAtomType} (через МНК)\n");
-        RtbOutputInfo.AppendText($"Dₛ ≈ {d3SecondTypeAtom}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.SecondAtomType} (через МНК (грубо))\n");
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d2FirstTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.FirstAtomType} (через МНК)\n");
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d3FirstTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.FirstAtomType} (через МНК (грубо))\n");
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d2SecondTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.SecondAtomType} (через МНК)\n");
+        RtbOutputInfo.AppendText($"Dₛ ≈ {d3SecondTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.SecondAtomType} (через МНК (грубо))\n");
 
         // Звуковое оповещение.
         AlarmBeep(500, 500, 1);
