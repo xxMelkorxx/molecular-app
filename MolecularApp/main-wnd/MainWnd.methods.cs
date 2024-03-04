@@ -31,7 +31,7 @@ public partial class MainWindow
                $"Сплав SnGe: {_atomic.FisrtFraction * 100}%:{_atomic.SecondFraction * 100}%\n" +
                $"Размер структуры (Nx/Ny/Nz) - {_atomic.Size}/{_atomic.Size}/{_atomic.Size}\n" +
                $"Размер структуры (Lx/Ly/Lz) - {_atomic.BoxSize * 1e9:F3}/{_atomic.BoxSize * 1e9:F3}/{_atomic.BoxSize * 1e9:F3} нм\n" +
-               $"Объём - {_atomic.V * 1e27:F5} нм³\n" +
+               $"Объём - {_atomic.GetVolume * 1e27:F5} нм³\n" +
                $"Число атомов - {_atomic.CountAtoms}\n" +
                $"Параметр решётки - {_atomic.SystemLattice * 1e9:F3} нм\n" +
                $"Кинетическая энергия - {_atomic.Ke:F5} эВ\n" +
@@ -69,7 +69,7 @@ public partial class MainWindow
                $"{_atomic.Fe,17:F5} |" +
                $"{_atomic.T,15:F1} |" +
                $"{_atomic.P1 / 1e6,15:F1} |" +
-               $"{_atomic.V * 1e27,11:F5} |\n";
+               $"{_atomic.GetVolume * 1e27,11:F5} |\n";
     }
 
     /// <summary>

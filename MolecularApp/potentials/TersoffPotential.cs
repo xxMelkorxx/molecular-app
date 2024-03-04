@@ -8,14 +8,18 @@ public class TersoffPotential : IPotential
 {
     private AtomType _firstTypeAtom, _secondTypeAtom;
     private TersoffParams _secondAtomParams, _firstAtomParams, _commonAtomParams;
+    
+    public Dictionary<PairIndexes, double> AtomsDistances { get; }
 
     /// <summary>
-    /// Инициализация потенциала.
+    /// Инициализация потенциала Терсоффа.
     /// </summary>
-    /// <param name="firstTypeAtom"></param>
-    /// <param name="secondTypeAtom"></param>
+    /// <param name="firstTypeAtom">первый тип атома в сплаве</param>
+    /// <param name="secondTypeAtom">второй тип атома в сплаве</param>
     public TersoffPotential(AtomType firstTypeAtom, AtomType secondTypeAtom)
     {
+        AtomsDistances = new Dictionary<PairIndexes, double>();
+        
         _firstTypeAtom = firstTypeAtom;
         _secondTypeAtom = secondTypeAtom;
 
@@ -24,14 +28,14 @@ public class TersoffPotential : IPotential
             AtomType.Si => TersoffParams.ParamsSi,
             AtomType.Ge => TersoffParams.ParamsGe,
             AtomType.Sn => TersoffParams.ParamsSn,
-            _ => throw new ArgumentException("Неверный тип атома")
+            _ => throw new Exception("Неверный тип атома")
         };
         _secondAtomParams = secondTypeAtom switch
         {
             AtomType.Si => TersoffParams.ParamsSi,
             AtomType.Ge => TersoffParams.ParamsGe,
             AtomType.Sn => TersoffParams.ParamsSn,
-            _ => throw new ArgumentException("Неверный тип атома")
+            _ => throw new Exception("Неверный тип атома")
         };
         _commonAtomParams = new TersoffParams(_firstAtomParams, _secondAtomParams);
     }
@@ -39,26 +43,17 @@ public class TersoffPotential : IPotential
     /// <summary>
     /// Получение радиуса обрезания.
     /// </summary>
-    /// <param name="fraction"></param>
-    /// <returns></returns>
     public double GetRadiusCutoff(double fraction) => fraction >= 0.5 ? _firstAtomParams.S : _secondAtomParams.S;
 
     /// <summary>
     /// Межатомная сила взаимодействия в потенциале (Дж * м).
     /// </summary>
-    /// <param name="selAtom"></param>
-    /// <param name="atomsDistances"></param>
-    /// <returns></returns>
-    public double PotentialDerivative(Atom selAtom, Dictionary<PairIndexes, double> atomsDistances) =>
-        PotentialEnergy(selAtom, atomsDistances) + selAtom.Neighbours.Sum(atom => PotentialEnergy(atom, atomsDistances));
+    public double PotentialDerivative(Atom selAtom) => PotentialEnergy(selAtom) + selAtom.Neighbours.Sum(atom => PotentialEnergy(atom));
 
     /// <summary>
     /// Потенциальная энергия (Дж).
     /// </summary>
-    /// <param name="selAtom"></param>
-    /// <param name="atomsDistances"></param>
-    /// <returns></returns>
-    public double PotentialEnergy(Atom selAtom, Dictionary<PairIndexes, double> atomsDistances)
+    public double PotentialEnergy(Atom selAtom)
     {
         var energy = 0d;
         for (var j = 0; j < selAtom.Neighbours.Count; j++)
@@ -67,11 +62,11 @@ public class TersoffPotential : IPotential
 
             var paramsIJ = (selAtom.Type == neigh.Type) ? (selAtom.Type == _firstTypeAtom ? _firstAtomParams : _secondAtomParams) : _commonAtomParams;
             var paramsI = selAtom.Type == _firstTypeAtom ? _firstAtomParams : _secondAtomParams;
-            var rij = atomsDistances[PairIndexes.GetIndexes(selAtom, neigh)];
+            var rij = AtomsDistances[PairIndexes.GetIndexes(selAtom, neigh)];
 
             if (rij < paramsIJ.S)
             {
-                var dzetaIJ = DzetaIJ(selAtom, neigh, paramsI, atomsDistances, rij);
+                var dzetaIJ = DzetaIJ(selAtom, neigh, paramsI, AtomsDistances, rij);
                 var bij = Math.Pow(1 + Math.Pow(paramsI.b * dzetaIJ, paramsI.n), -1d / (2 * paramsI.n));
 
                 energy += Fc(paramsIJ, rij) * (Fa(paramsIJ, rij) + bij * Fr(paramsIJ, rij));
@@ -109,7 +104,6 @@ public class TersoffPotential : IPotential
     /// <param name="rij">Расстояние между i-j атомами</param>
     /// <param name="rik">Расстояние между i-k атомами</param>
     /// <param name="rjk">Расстояние между j-k атомами</param>
-    /// <returns></returns>
     private static double CosOijk(double rij, double rik, double rjk) => (rik * rik + rij * rij - rjk * rjk) / (2d * rij * rik);
 
     /// <summary>
@@ -117,7 +111,6 @@ public class TersoffPotential : IPotential
     /// </summary>
     /// <param name="p">Параметры потенциала</param>
     /// <param name="rij">Расстояние между атомами</param>
-    /// <returns></returns>
     private static double Fc(TersoffParams p, double rij) => (rij <= p.R) ? 1 : (rij >= p.S) ? 0 : 0.5 + 0.5 * Math.Cos(Math.PI * (rij - p.R) / (p.S - p.R));
 
     /// <summary>
@@ -125,7 +118,6 @@ public class TersoffPotential : IPotential
     /// </summary>
     /// <param name="p">Параметры потенциала</param>
     /// <param name="rij">Расстояние между атомами</param>
-    /// <returns></returns>
     private static double Fa(TersoffParams p, double rij) => p.A * Math.Exp(-p.l1 * rij);
 
     /// <summary>
@@ -133,6 +125,5 @@ public class TersoffPotential : IPotential
     /// </summary>
     /// <param name="p">Параметры потенциала</param>
     /// <param name="rij">Расстояние между атомами</param>
-    /// <returns></returns>
     private static double Fr(TersoffParams p, double rij) => -p.B * Math.Exp(-p.l2 * rij);
 }

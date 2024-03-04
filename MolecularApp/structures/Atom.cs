@@ -7,7 +7,8 @@ public enum AtomType
 {
     Si,
     Ge,
-    Sn
+    Sn,
+    Ar
 }
 
 public class Atom
@@ -45,6 +46,7 @@ public class Atom
         AtomType.Si => 28.085 * 1.66054e-27,
         AtomType.Ge => 72.63 * 1.66054e-27,
         AtomType.Sn => 118.71 * 1.66054e-27,
+        AtomType.Ar => 39.948 * 1.66054e-27,
         _ => throw new ArgumentNullException()
     };
 
@@ -83,7 +85,8 @@ public class Atom
         AtomType.Si => 0.54307e-9,
         AtomType.Ge => 0.566e-9,
         AtomType.Sn => 0.64892e-9,
-        _ => throw new ArgumentNullException()
+        AtomType.Ar => 0.526e-9,
+        _ => throw new Exception("Отсутствующий тип атома")
     };
 
     /// <summary>
@@ -97,6 +100,7 @@ public class Atom
         AtomType.Si => 28.085 * 1.66054e-27,
         AtomType.Ge => 72.63 * 1.66054e-27,
         AtomType.Sn => 118.71 * 1.66054e-27,
-        _ => throw new ArgumentNullException()
+        AtomType.Ar => 39.948 * 1.66054e-27,
+        _ => throw new Exception("Отсутствующий тип атома")
     };
 }

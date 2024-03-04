@@ -54,16 +54,12 @@ public partial class MainWindow
         if (e.OldValue != null)
             NudFirstFraction.Value = 1d - (double)e.NewValue;
     }
+    
+    private void OnSelectionChangedComboBoxAtomsType(object sender, SelectionChangedEventArgs e) { _atomType = (AtomType)ComboBoxAtomsType.SelectedIndex; }
+    
+    private void OnSelectionChangedComboBoxFirstAtomsType(object sender, SelectionChangedEventArgs e) { _firstAtom = (AtomType)ComboBoxFirstAtomsType.SelectedIndex; }
 
-    private void OnSelectionChangedComboBoxFirstTypeAtoms(object sender, SelectionChangedEventArgs e)
-    {
-        _firstAtom = (AtomType)ComboBoxFirstTypeAtoms.SelectedIndex;
-    }
-
-    private void OnSelectionChangedComboBoxSecondTypeAtoms(object sender, SelectionChangedEventArgs e)
-    {
-        _secondAtom = (AtomType)ComboBoxSecondTypeAtoms.SelectedIndex;
-    }
+    private void OnSelectionChangedComboBoxSecondAtomsType(object sender, SelectionChangedEventArgs e) { _secondAtom = (AtomType)ComboBoxSecondAtomsType.SelectedIndex; }
 
     private void OnValueChangedNudCountNumberAcf(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
@@ -79,5 +75,25 @@ public partial class MainWindow
     {
         if (NudCountNumberAcf is not null && NudCountNumberAcf.Value > NudCountStep.Value) NudCountNumberAcf.Value = NudCountStep.Value;
         if (NudSnapshotStep is not null && NudSnapshotStep.Value > NudCountStep.Value) NudSnapshotStep.Value = NudCountStep.Value;
+    }
+
+    private void OnCheckedRadioButtonCrystal(object sender, RoutedEventArgs e)
+    {
+        if (CrystalParamsPanel is not null)
+        {
+            _isCrystal = true;
+            CrystalParamsPanel.Visibility = Visibility.Visible;
+            AlloyParamsPanel.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void OnUncheckedRadioButtonCrystal(object sender, RoutedEventArgs e)
+    {
+        if (AlloyParamsPanel is not null)
+        {
+            _isCrystal = false;
+            CrystalParamsPanel.Visibility = Visibility.Collapsed;
+            AlloyParamsPanel.Visibility = Visibility.Visible;
+        }
     }
 }

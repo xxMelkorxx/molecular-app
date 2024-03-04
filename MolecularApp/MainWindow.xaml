@@ -149,7 +149,8 @@
                         <xctk:IntegerUpDown Name="NudSize" TextAlignment="Right" Width="100" Height="25" Minimum="1" Maximum="1000" Increment="1" Value="3" />
                     </WrapPanel>
 
-                    <CheckBox Name="CbIsDisplacement" HorizontalAlignment="Right" Margin="0 5 0 0"
+                    <CheckBox Name="CbIsDisplacement"
+                              HorizontalAlignment="Right" Margin="0 5 0 0"
                               Checked="OnCheckedDisplacement"
                               Unchecked="OnUncheckedDisplacement">
                         Задать смещение атомов?
@@ -160,13 +161,33 @@
                         <xctk:DoubleUpDown Name="NudDisplacement" TextAlignment="Right" Width="100" Height="25" Minimum="0" Maximum="1" Increment="0.01" Value="0.05"
                                            IsEnabled="False" FormatString="F3" />
                     </WrapPanel>
-
-                    <Label HorizontalAlignment="Right" Margin="0 5 0 0">Характеристики сплава</Label>
+                    
                     <WrapPanel HorizontalAlignment="Right">
-                        <!-- <Label>Тип атома</Label> -->
-                        <ComboBox Name="ComboBoxFirstTypeAtoms" SelectedIndex="2"
+                        <RadioButton HorizontalAlignment="Right" Margin="0 5 10 0" 
+                                     IsChecked="True"
+                                     Checked="OnCheckedRadioButtonCrystal"
+                                     Unchecked="OnUncheckedRadioButtonCrystal">
+                            Монокристалл
+                        </RadioButton>
+                        <RadioButton HorizontalAlignment="Right" Margin="0 5 0 0"
+                                     IsChecked="False">
+                            Сплав
+                        </RadioButton>    
+                    </WrapPanel>
+                    
+                    <WrapPanel Name="CrystalParamsPanel" HorizontalAlignment="Right" Visibility="Visible">
+                        <Label>Тип решётки: FCC</Label>
+                        <Label>Тип атома</Label>
+                        <ComboBox Name="ComboBoxAtomsType" SelectedIndex="0"
                                   Width="50" Height="25" IsReadOnly="True"
-                                  SelectionChanged="OnSelectionChangedComboBoxFirstTypeAtoms">
+                                  SelectionChanged="OnSelectionChangedComboBoxAtomsType">
+                            <sys:String>Ar</sys:String>
+                        </ComboBox>
+                    </WrapPanel>
+                    <WrapPanel Name="AlloyParamsPanel" HorizontalAlignment="Right" Visibility="Collapsed">
+                        <ComboBox Name="ComboBoxFirstAtomsType" SelectedIndex="2"
+                                  Width="50" Height="25" IsReadOnly="True"
+                                  SelectionChanged="OnSelectionChangedComboBoxFirstAtomsType">
                             <sys:String>Si</sys:String>
                             <sys:String>Ge</sys:String>
                             <sys:String>Sn</sys:String>
@@ -178,9 +199,9 @@
                         <xctk:DoubleUpDown Name="NudSecondFraction" Width="60" Height="25" FormatString="F2" TextAlignment="Right"
                                            Minimum="0" Maximum="1" Increment="0.01" Value="0.9"
                                            ValueChanged="OnValueChangedSecondFraction" />
-                        <ComboBox Name="ComboBoxSecondTypeAtoms" SelectedIndex="1"
+                        <ComboBox Name="ComboBoxSecondAtomsType" SelectedIndex="1"
                                   Width="50" Height="25" IsReadOnly="True"
-                                  SelectionChanged="OnSelectionChangedComboBoxSecondTypeAtoms">
+                                  SelectionChanged="OnSelectionChangedComboBoxSecondAtomsType">
                             <sys:String>Si</sys:String>
                             <sys:String>Ge</sys:String>
                             <sys:String>Sn</sys:String>

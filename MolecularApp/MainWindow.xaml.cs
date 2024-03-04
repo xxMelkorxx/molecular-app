@@ -14,7 +14,7 @@ namespace MolecularApp;
 
 public partial class MainWindow
 {
-    private AtomicModel _atomic;
+    private AlloyModel _atomic;
     private SceneManager _scene;
     private readonly BackgroundWorker _bgWorkerCreateModel, _bgWorkerCalculation;
     private readonly System.Windows.Forms.Timer _timer;
@@ -22,10 +22,10 @@ public partial class MainWindow
     private List<List<AtomItem>> _atomItemsList;
     private List<PointD> _msdPoints1, _msdPoints2; // _msdPoints;
     private double _averT, _averP;
-    private bool _isDisplacement, _isSnapshot, _isNormSpeeds, _isNewSystem;
+    private bool _isDisplacement, _isSnapshot, _isNormSpeeds, _isNewSystem, _isCrystal;
     private double _yMaxRb;
     private int _initStep, _iter;
-    private AtomType _firstAtom, _secondAtom;
+    private AtomType _atomType, _firstAtom, _secondAtom;
     private double _l0;
 
     private const string saveImagePath = "S:\\SerBor\\Научка\\ImageResults";
@@ -56,21 +56,16 @@ public partial class MainWindow
 
     #region ---СОБЫТИЯ СОЗДАНИЯ МОДЕЛИ---
 
-    /// <summary>
-    /// Событие создание модели.
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    // Событие создание модели.
     private void OnCreateModel(object sender, RoutedEventArgs e)
     {
         if (_timer.Enabled) // Остановка таймера.
             _timer.Stop();
 
-        _params["size"] = NudSize.Value; // размер расчётной ячейки.
-        _params["displacement"] = NudDisplacement.Value; // коэффициент начального смещения.
+        _params["size"] = NudSize.Value;
+        _params["displacement"] = NudDisplacement.Value;
         _params["firstFraction"] = NudFirstFraction.Value;
         _params["secondFraction"] = NudSecondFraction.Value;
-        // Инициализация массивов энергий системы.
         _params["ke"] = new List<double>();
         _params["pe"] = new List<double>();
         _params["fe"] = new List<double>();
@@ -92,22 +87,19 @@ public partial class MainWindow
         _bgWorkerCreateModel.RunWorkerAsync(); // Запуск создания модели.
     }
 
-    /// <summary>
-    /// DO WORK CREATE MODEL
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    /// <exception cref="ArgumentException"></exception>
+    // DO WORK CREATE MODEL.
     private void OnBackgroundWorkerDoWorkCreateModel(object sender, DoWorkEventArgs e)
     {
         // Инициализация системы.
-        _atomic = new AtomicModel(
+        _atomic = new AlloyModel(
             size: (int)_params["size"],
             firstTypeAtom: _firstAtom,
             fisrtFraction: (double)_params["firstFraction"],
             secondTypeAtom: _secondAtom,
             secondFraction: (double)_params["secondFraction"]
         );
+        _atomic.CreateSystem();
+        _atomic.InitCalculation();
         _initStep = _atomic.CurrentStep;
         _l0 = _atomic.SystemLattice;
 
@@ -122,11 +114,7 @@ public partial class MainWindow
         ((List<double>)_params["fe"]).Add(_atomic.Fe);
     }
 
-    /// <summary>
-    /// RUN WORKER COMPLETED CREATE MODEL
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    // RUN WORKER COMPLETED CREATE MODEL.
     private void OnBackgroundWorkerRunWorkerCompletedCreateModel(object sender, RunWorkerCompletedEventArgs e)
     {
         if (e.Error != null)
@@ -175,11 +163,7 @@ public partial class MainWindow
 
     #region ---СОБЫТИЯ ЗАПУСКА МОДЕЛИРОВАНИЯ---
 
-    /// <summary>
-    /// Событие запуска/возобновления вычислений.
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    // Событие запуска/возобновления вычислений.
     private void OnStartCalculation(object sender, RoutedEventArgs e)
     {
         BtnStartCalculation.IsEnabled = false;
@@ -257,13 +241,7 @@ public partial class MainWindow
         _bgWorkerCalculation.RunWorkerAsync();
     }
 
-    /// <summary>
-    /// DO WORK CALCULATION
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
-    /// <exception cref="Exception"></exception>
-    /// <exception cref="ArgumentException"></exception>
+    // DO WORK CALCULATION.
     private void OnBackgroundWorkerDoWorkCalculation(object sender, DoWorkEventArgs e)
     {
         if (_atomic == null)
@@ -319,7 +297,7 @@ public partial class MainWindow
                 {
                     RtbOutputInfo.AppendText($"\n{_averT / tempStep:F1} К - средняя температура");
                     RtbOutputInfo.AppendText($"\n{_averP / tempStep / 1e6:F1} МПа - среднее давление (через вириал)");
-                    RtbOutputInfo.AppendText($"\n{_atomic.P2 / tempStep / 1e6:F1} МПа - среднее давление\n\n");
+                    RtbOutputInfo.AppendText($"\n{_atomic.P1 / tempStep / 1e6:F1} МПа - среднее давление\n\n");
                     RtbOutputInfo.ScrollToEnd();
                 });
                 _averT = 0;
@@ -343,11 +321,7 @@ public partial class MainWindow
         _initStep += _atomic.CurrentStep - 1;
     }
 
-    /// <summary>
-    /// RUN WORKER COMPLETED CALCULATION
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    // RUN WORKER COMPLETED CALCULATION.
     private void OnBackgroundWorkerRunWorkerCompletedCalculation(object sender, RunWorkerCompletedEventArgs e)
     {
         if (e.Cancelled)
@@ -454,18 +428,10 @@ public partial class MainWindow
         BtnSlower.IsEnabled = false;
     }
 
-    /// <summary>
-    /// PROGRESS CHANGED CALCULATION
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    // PROGRESS CHANGED CALCULATION
     private void OnBackgroundWorkerProgressChangedCalculation(object sender, ProgressChangedEventArgs e) { ProgressBar.Value = e.ProgressPercentage; }
 
-    /// <summary>
-    /// Событие отмены вычислений.
-    /// </summary>
-    /// <param name="sender"></param>
-    /// <param name="e"></param>
+    // Событие отмены вычислений.
     private void OnCancelCalculation(object sender, RoutedEventArgs e)
     {
         if (_bgWorkerCalculation.IsBusy)
