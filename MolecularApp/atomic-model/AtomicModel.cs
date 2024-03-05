@@ -11,11 +11,7 @@ public abstract partial class AtomicModel
     protected const double eV = 1.602176634e-19; // 1 эВ в Дж.
     protected const double kB = 1.380649e-23; // Постоянная Больцмана (Дж/К).
     protected Random _rnd;
-    protected List<XYZ> _rt0;
     protected List<List<XYZ>> _vtList;
-
-    public List<XYZ> rt01 { get; set; }
-    public List<XYZ> rt02 { get; set; }
     
     // Список атомов.
     public List<Atom> Atoms { get; protected set; }
@@ -33,11 +29,13 @@ public abstract partial class AtomicModel
     public double BoxSize => Size * SystemLattice;
     
     // Кинетическая энергия системы (эВ).
-    public double Ke => Atoms.Sum(atom => atom.Weight * atom.Velocity.SquaredMagnitude() / 2d) / eV;
+    public double Ke => _ke / eV;
+    protected double _ke;
 
     // Потенциальная энергия системы (эВ).
-    public double Pe => Atoms.Sum(atom => _potential.PotentialEnergy(atom)) / eV;
-
+    public double Pe => _pe / eV;
+    protected double _pe;
+    
     // Полная энергия системы (эВ).
     public double Fe => Ke + Pe;
     
@@ -56,9 +54,6 @@ public abstract partial class AtomicModel
     // Объём системы (м³).
     public double GetVolume => BoxSize * BoxSize * BoxSize;
     
-    // Потенциал.
-    protected IPotential _potential;
-    
     // Величина временного шага (c).
     public double dt;
     // Текущий временной шаг.
@@ -70,6 +65,11 @@ public abstract partial class AtomicModel
     // Шаг повторений подсчёта.
     public int StepRepeatAcf;
 
+    /// <summary>
+    /// Получение наименование для лог-файла.
+    /// </summary>
+    public abstract string GetNameLogFile();
+    
     /// <summary>
     /// Создание атомой системы.
     /// </summary>
@@ -90,9 +90,4 @@ public abstract partial class AtomicModel
     /// Алгоритм Верле для вычисления координат и скоростей атомов на временном шаге.
     /// </summary>
     public abstract void Verlet();
-
-    /// <summary>
-    /// Подсчёт ускорения системы атомов.
-    /// </summary>
-    protected abstract void Accels();
 }

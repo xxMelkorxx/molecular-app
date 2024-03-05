@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace MolecularApp.potentials;
 
-public class TersoffPotential : IPotential
+public class TersoffPotential
 {
     private AtomType _firstTypeAtom, _secondTypeAtom;
     private TersoffParams _secondAtomParams, _firstAtomParams, _commonAtomParams;

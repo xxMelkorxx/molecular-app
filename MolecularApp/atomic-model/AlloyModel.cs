@@ -8,6 +8,11 @@ namespace MolecularApp.atomic_model;
 
 public class AlloyModel : AtomicModel
 {
+    private TersoffPotential _potential;
+    
+    public List<XYZ> rt01 { get; set; }
+    public List<XYZ> rt02 { get; set; }
+    
     // Типы атомов.
     public AtomType FirstAtomType, SecondAtomType;
     
@@ -34,15 +39,19 @@ public class AlloyModel : AtomicModel
         // Вычисление параметра решётки системы по закону Вегарда.
         SystemLattice = Atom.GetLattice(firstTypeAtom) * fisrtFraction + Atom.GetLattice(secondTypeAtom) * secondFraction;
 
-        _virial = 0;
         _rnd = new Random(Guid.NewGuid().GetHashCode());
 
         // Инициализация потенциала.
         _potential = new TersoffPotential(firstTypeAtom, secondTypeAtom);
-        DistanceBetweenAtoms = ((TersoffPotential)_potential).AtomsDistances;
+        DistanceBetweenAtoms = _potential.AtomsDistances;
 
         // Получение начальных координат без учёта ПГУ для первого типа атома и для второго и общий.
         _vtList = new List<List<XYZ>> { GetVelocitiesAtoms() };
+    }
+    
+    public override string GetNameLogFile()
+    {
+        return $"Results_{DateTime.Now:ddmmyyyy_hhmmss}_{FirstAtomType}{SecondAtomType}_{(int)(SecondFraction * 100)}_{(int)(FisrtFraction * 100)}_{CountAtoms}";
     }
     
     public override void CreateSystem()
@@ -80,14 +89,18 @@ public class AlloyModel : AtomicModel
         SearchAtomsNeighbours();
         // Начальный подсчёт ускорений атомов.
         Accels();
+
+        _ke = Atoms.Sum(atom => atom.Weight * atom.Velocity.SquaredMagnitude() / 2d);
+        _pe = Atoms.Sum(atom => _potential.PotentialEnergy(atom));
+        _virial = 0;
     }
 
-    public override double GetRadiusAtom() => ((TersoffPotential)_potential).GetRadiusCutoff(FisrtFraction);
+    public override double GetRadiusAtom() => _potential.GetRadiusCutoff(FisrtFraction);
     
     public override void Verlet()
     {
         _virial = 0;
-
+        
         // Расчёт новых положений атомов.
         Atoms.ForEach(atom =>
         {
@@ -95,13 +108,19 @@ public class AlloyModel : AtomicModel
             atom.Position = Periodic(atom.Position + newPos, atom.Velocity * atom.Weight);
             atom.PositionNp += newPos;
         });
+        
         // Поиск соседей атомов после их сдвига.
         SearchAtomsNeighbours();
+        
         // Расчёт новых скоростей и ускорений.
         Atoms.ForEach(atom => atom.Velocity += 0.5 * atom.Acceleration * dt);
         Accels();
         Atoms.ForEach(atom => atom.Velocity += 0.5 * atom.Acceleration * dt);
-
+        
+        // Расчёт энергий.
+        _ke = Atoms.Sum(atom => atom.Weight * atom.Velocity.SquaredMagnitude() / 2d);
+        _pe = Atoms.Sum(atom => _potential.PotentialEnergy(atom));
+        
         // Рассчёт АКФ скорости.
         if (CurrentStep == 1)
             _vtList.Clear();
@@ -111,7 +130,7 @@ public class AlloyModel : AtomicModel
         CurrentStep++;
     }
 
-    protected override void Accels()
+    private void Accels()
     {
         Parallel.ForEach(Atoms, atom =>
         {

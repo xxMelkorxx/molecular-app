@@ -10,23 +10,6 @@ public struct TersoffParams
     public const double Ev = 1.602176634e-19;
 
     public double A, B, S, R, b, c, d, n, h, l1, l2;
-
-    /// <summary>
-    /// Параметры потенциала для Si (кремний).
-    /// </summary>
-    public static TersoffParams ParamsSi => new(1830.8, 471.18, 24.799, 17.322, 1.1e-6, 0.78734, 1.0039e+5, 16.217, -0.59825, 0.27, 0.3);
-    
-    /// <summary>
-    /// Параметры потенциала для Ge (германий).
-    /// </summary>
-    public static TersoffParams ParamsGe => new(1769, 419.23, 24.451, 17.047, 9.0166e-7, 0.75627, 1.0643e+5, 15.652, -0.43884, 0.28, 0.31);
-
-    /// <summary>
-    /// Параметры потенциала для Sn (олово).
-    /// </summary>
-    public static TersoffParams ParamsSn => new(520.4677, 281.4117, 15.5, 12.5649, 6.01e-7, 0.74, 1.4e+5, 14.5, -0.502, 0.3, 0.34);
-    // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(526.46, 296.83, 0.34, 0.30, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 15.3, 12.56);
-    // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(2848, 658.62, 0.32, 0.28, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 22.5, 16.2);
     
     /// <summary>
     /// Инициализация параметров потенциала Терсоффа. 
@@ -76,4 +59,21 @@ public struct TersoffParams
         R = Math.Sqrt(p1.R * p2.R);
         S = Math.Sqrt(p1.S * p2.S);
     }
+    
+    /// <summary>
+    /// Параметры потенциала для Si (кремний).
+    /// </summary>
+    public static TersoffParams ParamsSi => new(1830.8, 471.18, 24.799, 17.322, 1.1e-6, 0.78734, 1.0039e+5, 16.217, -0.59825, 0.27, 0.3);
+    
+    /// <summary>
+    /// Параметры потенциала для Ge (германий).
+    /// </summary>
+    public static TersoffParams ParamsGe => new(1769, 419.23, 24.451, 17.047, 9.0166e-7, 0.75627, 1.0643e+5, 15.652, -0.43884, 0.28, 0.31);
+
+    /// <summary>
+    /// Параметры потенциала для Sn (олово).
+    /// </summary>
+    public static TersoffParams ParamsSn => new(520.4677, 281.4117, 15.5, 12.5649, 6.01e-7, 0.74, 1.4e+5, 14.5, -0.502, 0.3, 0.34);
+    // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(526.46, 296.83, 0.34, 0.30, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 15.3, 12.56);
+    // public static TersoffPotential.PotentialParams ParamsSn => new TersoffPotential.PotentialParams(2848, 658.62, 0.32, 0.28, 6.01e-7, 1.4e+5, 14.5, 0.74, -0.502, 22.5, 16.2);
 }

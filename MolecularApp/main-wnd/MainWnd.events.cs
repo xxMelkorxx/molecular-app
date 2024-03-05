@@ -54,9 +54,9 @@ public partial class MainWindow
         if (e.OldValue != null)
             NudFirstFraction.Value = 1d - (double)e.NewValue;
     }
-    
+
     private void OnSelectionChangedComboBoxAtomsType(object sender, SelectionChangedEventArgs e) { _atomType = (AtomType)ComboBoxAtomsType.SelectedIndex; }
-    
+
     private void OnSelectionChangedComboBoxFirstAtomsType(object sender, SelectionChangedEventArgs e) { _firstAtom = (AtomType)ComboBoxFirstAtomsType.SelectedIndex; }
 
     private void OnSelectionChangedComboBoxSecondAtomsType(object sender, SelectionChangedEventArgs e) { _secondAtom = (AtomType)ComboBoxSecondAtomsType.SelectedIndex; }

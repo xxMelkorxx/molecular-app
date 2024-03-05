@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using MolecularApp.atomic_model;
 using ScottPlot;
 using ScottPlot.Control;
 
@@ -28,7 +29,9 @@ public partial class MainWindow
     private string InitInfoSystem()
     {
         return "Структура создана...\n" +
-               $"Сплав SnGe: {_atomic.FisrtFraction * 100}%:{_atomic.SecondFraction * 100}%\n" +
+               (_isCrystal
+                   ? $"Кристалл {((MonocrystalModel)_atomic).AtomType}"
+                   : $"Сплав {((AlloyModel)_atomic).FirstAtomType}{((AlloyModel)_atomic).SecondAtomType}: {((AlloyModel)_atomic).FisrtFraction * 100}%:{((AlloyModel)_atomic).SecondFraction * 100}%\n") +
                $"Размер структуры (Nx/Ny/Nz) - {_atomic.Size}/{_atomic.Size}/{_atomic.Size}\n" +
                $"Размер структуры (Lx/Ly/Lz) - {_atomic.BoxSize * 1e9:F3}/{_atomic.BoxSize * 1e9:F3}/{_atomic.BoxSize * 1e9:F3} нм\n" +
                $"Объём - {_atomic.GetVolume * 1e27:F5} нм³\n" +

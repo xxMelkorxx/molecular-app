@@ -14,13 +14,13 @@ namespace MolecularApp;
 
 public partial class MainWindow
 {
-    private AlloyModel _atomic;
+    private AtomicModel _atomic;
     private SceneManager _scene;
     private readonly BackgroundWorker _bgWorkerCreateModel, _bgWorkerCalculation;
     private readonly System.Windows.Forms.Timer _timer;
     private Dictionary<string, object> _params;
     private List<List<AtomItem>> _atomItemsList;
-    private List<PointD> _msdPoints1, _msdPoints2; // _msdPoints;
+    private List<PointD> _msdPoints, _msdPoints1, _msdPoints2; 
     private double _averT, _averP;
     private bool _isDisplacement, _isSnapshot, _isNormSpeeds, _isNewSystem, _isCrystal;
     private double _yMaxRb;
@@ -64,8 +64,11 @@ public partial class MainWindow
 
         _params["size"] = NudSize.Value;
         _params["displacement"] = NudDisplacement.Value;
-        _params["firstFraction"] = NudFirstFraction.Value;
-        _params["secondFraction"] = NudSecondFraction.Value;
+        if (!_isCrystal)
+        {
+            _params["firstFraction"] = NudFirstFraction.Value;
+            _params["secondFraction"] = NudSecondFraction.Value;
+        }
         _params["ke"] = new List<double>();
         _params["pe"] = new List<double>();
         _params["fe"] = new List<double>();
@@ -90,14 +93,24 @@ public partial class MainWindow
     // DO WORK CREATE MODEL.
     private void OnBackgroundWorkerDoWorkCreateModel(object sender, DoWorkEventArgs e)
     {
-        // Инициализация системы.
-        _atomic = new AlloyModel(
-            size: (int)_params["size"],
-            firstTypeAtom: _firstAtom,
-            fisrtFraction: (double)_params["firstFraction"],
-            secondTypeAtom: _secondAtom,
-            secondFraction: (double)_params["secondFraction"]
-        );
+        if (_isCrystal)
+        {
+            _atomic = new MonocrystalModel(
+                size: (int)_params["size"],
+                atomType: _atomType
+            );
+        }
+        else
+        {
+            // Инициализация системы.
+            _atomic = new AlloyModel(
+                size: (int)_params["size"],
+                firstTypeAtom: _firstAtom,
+                fisrtFraction: (double)_params["firstFraction"],
+                secondTypeAtom: _secondAtom,
+                secondFraction: (double)_params["secondFraction"]
+            );    
+        }
         _atomic.CreateSystem();
         _atomic.InitCalculation();
         _initStep = _atomic.CurrentStep;
@@ -186,11 +199,18 @@ public partial class MainWindow
         _atomic.PulseZeroing();
 
         // Инициализация массива среднего квадрата смещения.
-        _atomic.rt01 = _atomic.GetPosNpAtoms(1);
-        _atomic.rt02 = _atomic.GetPosNpAtoms(2);
-        // _msdPoints = new List<PointD> { new(0, 0) };
-        _msdPoints1 = new List<PointD> { new(0, 0) };
-        _msdPoints2 = new List<PointD> { new(0, 0) };
+        if (_isCrystal)
+        {
+            ((MonocrystalModel)_atomic).rt0 = ((MonocrystalModel)_atomic).GetPosNpAtoms();
+            _msdPoints = new List<PointD> { new(0, 0) };
+        }
+        else
+        {
+            ((AlloyModel)_atomic).rt01 = ((AlloyModel)_atomic).GetPosNpAtoms(1);
+            ((AlloyModel)_atomic).rt02 = ((AlloyModel)_atomic).GetPosNpAtoms(2);
+            _msdPoints1 = new List<PointD> { new(0, 0) };
+            _msdPoints2 = new List<PointD> { new(0, 0) };
+        }
         _averT = 0;
         _averP = 0;
         _iter = 0;
@@ -221,7 +241,7 @@ public partial class MainWindow
         if (_isNewSystem)
         {
             var saveDirectory = new DirectoryInfo(
-                $"{saveImagePath}\\Results_{DateTime.Now:ddmmyyyy_hhmmss}_{_firstAtom}{_secondAtom}_{(int)(_atomic.SecondFraction * 100)}_{(int)(_atomic.FisrtFraction * 100)}_{_atomic.CountAtoms}"
+                $"{saveImagePath}\\{_atomic.GetNameLogFile()}"
             );
             if (!saveDirectory.Exists)
                 saveDirectory.Create();
@@ -309,9 +329,15 @@ public partial class MainWindow
             // Расчёт среднего квадрата смещения.
             if (i % (int)_params["stepRt"] == 0 || i == _initStep + countStep - 1)
             {
-                // _msdPoints.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetMsd()));
-                _msdPoints1.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetMsd(flag: 1)));
-                _msdPoints2.Add(new PointD((i - _initStep + 1) * _atomic.dt, _atomic.GetMsd(flag: 2)));
+                if (_isCrystal)
+                {
+                    _msdPoints.Add(new PointD((i - _initStep + 1) * _atomic.dt, ((MonocrystalModel)_atomic).GetMsd()));
+                }
+                else
+                {
+                    _msdPoints1.Add(new PointD((i - _initStep + 1) * _atomic.dt, ((AlloyModel)_atomic).GetMsd(flag: 1)));
+                    _msdPoints2.Add(new PointD((i - _initStep + 1) * _atomic.dt, ((AlloyModel)_atomic).GetMsd(flag: 2)));    
+                }
             }
 
             // Обновление ProgressBar.
@@ -360,18 +386,29 @@ public partial class MainWindow
         // Отрисовка графика среднего квадрата смещения распределения.
         if (_msdPoints1.Count != 1 && _msdPoints2.Count != 1)
         {
+            if (_isCrystal)
+            {
+                Chart3.Plot.AddSignalXY(
+                    _msdPoints1.Select(p => p.X * 1e12).ToArray(),
+                    _msdPoints1.Select(p => p.Y * 1e18).ToArray(),
+                    Color.Fuchsia,
+                    $"Средний квадрат смещения {((MonocrystalModel)_atomic).AtomType}");
+            }
+            else
+            {
+                Chart3.Plot.AddSignalXY(
+                    _msdPoints1.Select(p => p.X * 1e12).ToArray(),
+                    _msdPoints1.Select(p => p.Y * 1e18).ToArray(),
+                    Color.Fuchsia,
+                    $"Средний квадрат смещения {((AlloyModel)_atomic).FirstAtomType}");
+                Chart3.Plot.AddSignalXY(
+                    _msdPoints2.Select(p => p.X * 1e12).ToArray(),
+                    _msdPoints2.Select(p => p.Y * 1e18).ToArray(),
+                    Color.Teal,
+                    $"Средний квадрат смещения {((AlloyModel)_atomic).SecondAtomType}"
+                );    
+            }
             // Chart3.Plot.AddSignalXY(_msdPoints.Select(p => p.X * 1e12).ToArray(), _msdPoints.Select(p => p.Y * 1e18).ToArray(), Color.Indigo, "Средний квадрат смещения");
-            Chart3.Plot.AddSignalXY(
-                _msdPoints1.Select(p => p.X * 1e12).ToArray(),
-                _msdPoints1.Select(p => p.Y * 1e18).ToArray(),
-                Color.Fuchsia,
-                $"Средний квадрат смещения {_atomic.FirstAtomType}");
-            Chart3.Plot.AddSignalXY(
-                _msdPoints2.Select(p => p.X * 1e12).ToArray(),
-                _msdPoints2.Select(p => p.Y * 1e18).ToArray(),
-                Color.Teal,
-                $"Средний квадрат смещения {_atomic.SecondAtomType}"
-            );
             // Chart3.Plot.SetAxisLimits(xMin: 0, xMax: _msdPoints.Max(p => p.X * 1e12), yMin: 0, yMax: (_msdPoints.Max(p => p.Y * 1e18) < 1e-10 ? 0.1 : _msdPoints.Max(p => p.Y * 1e18)) * 1.5);
             Chart3.Plot.SetAxisLimits(xMin: 0, xMax: _msdPoints1.Max(p => p.X * 1e12));
             Chart3.Plot.Legend(location: Alignment.UpperRight);
@@ -397,20 +434,25 @@ public partial class MainWindow
 
         // Вывод информации в Rtb.
         var d1 = double.Round(_atomic.GetSelfDiffCoefFromAcf(zt, norm) * 1e9, 5);
-        // var d2 = double.Round(AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints, out _) * 1e9, 5);
-        // var d3 = double.Round(AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints[1], _msdPoints[_msdPoints.Count - 1]) * 1e9, 5);
-        var d2FirstTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints1, out _) * 1e9;
-        var d3FirstTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints1[0], _msdPoints1[^1]) * 1e9;
-        var d2SecondTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints2, out _) * 1e9;
-        var d3SecondTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints2[0], _msdPoints2[^1]) * 1e9;
         RtbOutputInfo.AppendText($"Dₛ ≈ {d1}•10⁻⁵ см²/с - коэф. самодифузии (через АКФ)\n");
-        // RtbOutputInfo.AppendText($"Dₛ ≈ {d2}•10⁻⁵ см²/с - коэф. самодифузии (через МНК)\n");
-        // RtbOutputInfo.AppendText($"Dₛ ≈ {d3}•10⁻⁵ см²/с - коэф. самодифузии (через МНК (грубо))\n");
-        RtbOutputInfo.AppendText($"Dₛ ≈ {d2FirstTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.FirstAtomType} (через МНК)\n");
-        RtbOutputInfo.AppendText($"Dₛ ≈ {d3FirstTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.FirstAtomType} (через МНК (грубо))\n");
-        RtbOutputInfo.AppendText($"Dₛ ≈ {d2SecondTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.SecondAtomType} (через МНК)\n");
-        RtbOutputInfo.AppendText($"Dₛ ≈ {d3SecondTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {_atomic.SecondAtomType} (через МНК (грубо))\n");
-
+        if (_isCrystal)
+        {
+            var d2 = double.Round(AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints, out _) * 1e9, 5);
+            var d3 = double.Round(AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints[1], _msdPoints[_msdPoints.Count - 1]) * 1e9, 5);
+            RtbOutputInfo.AppendText($"Dₛ ≈ {d2}•10⁻⁵ см²/с - коэф. самодифузии (через МНК)\n");
+            RtbOutputInfo.AppendText($"Dₛ ≈ {d3}•10⁻⁵ см²/с - коэф. самодифузии (через МНК (грубо))\n");
+        }
+        else
+        {
+            var d2FirstTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints1, out _) * 1e9;
+            var d3FirstTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints1[0], _msdPoints1[^1]) * 1e9;
+            var d2SecondTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints2, out _) * 1e9;
+            var d3SecondTypeAtom = AtomicModel.GetSelfDiffCoefFromMsd(_msdPoints2[0], _msdPoints2[^1]) * 1e9;
+            RtbOutputInfo.AppendText($"Dₛ ≈ {d2FirstTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {((AlloyModel)_atomic).FirstAtomType} (через МНК)\n");
+            RtbOutputInfo.AppendText($"Dₛ ≈ {d3FirstTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {((AlloyModel)_atomic).FirstAtomType} (через МНК (грубо))\n");
+            RtbOutputInfo.AppendText($"Dₛ ≈ {d2SecondTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {((AlloyModel)_atomic).SecondAtomType} (через МНК)\n");
+            RtbOutputInfo.AppendText($"Dₛ ≈ {d3SecondTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {((AlloyModel)_atomic).SecondAtomType} (через МНК (грубо))\n");    
+        }
         // Звуковое оповещение.
         AlarmBeep(500, 500, 1);
 

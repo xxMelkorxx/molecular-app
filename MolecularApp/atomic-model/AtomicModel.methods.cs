@@ -128,16 +128,6 @@ public abstract partial class AtomicModel
     /// Получение скоростей атомов.
     /// </summary>
     protected List<XYZ> GetVelocitiesAtoms() => Atoms.Select(atom => atom.Velocity).ToList();
-
-    /// <summary>
-    /// Получение координат атомов без учёта ПГУ на текущем шаге.
-    /// </summary>
-    public List<XYZ> GetPosNpAtoms() => Atoms.Select(atom => atom.PositionNp).ToList();
-
-    /// <summary>
-    /// Вычисление среднего квадрата смещения на текущем шаге. 
-    /// </summary>
-    public double GetMsd() => _rt0.Zip(GetPosNpAtoms(), (vec1, vec2) => (vec2 - vec1).SquaredMagnitude()).Sum() / CountAtoms;
     
     /// <summary>
     /// Расчет коэффициента самодиффузии из среднего квадрата смещения.
