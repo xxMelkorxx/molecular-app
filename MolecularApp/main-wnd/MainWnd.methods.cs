@@ -30,7 +30,7 @@ public partial class MainWindow
     {
         return "Структура создана...\n" +
                (_isCrystal
-                   ? $"Кристалл {((MonocrystalModel)_atomic).AtomType}"
+                   ? $"Кристалл {((MonocrystalModel)_atomic).AtomType}\n"
                    : $"Сплав {((AlloyModel)_atomic).FirstAtomType}{((AlloyModel)_atomic).SecondAtomType}: {((AlloyModel)_atomic).FisrtFraction * 100}%:{((AlloyModel)_atomic).SecondFraction * 100}%\n") +
                $"Размер структуры (Nx/Ny/Nz) - {_atomic.Size}/{_atomic.Size}/{_atomic.Size}\n" +
                $"Размер структуры (Lx/Ly/Lz) - {_atomic.BoxSize * 1e9:F3}/{_atomic.BoxSize * 1e9:F3}/{_atomic.BoxSize * 1e9:F3} нм\n" +

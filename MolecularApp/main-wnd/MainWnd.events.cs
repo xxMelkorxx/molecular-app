@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 
@@ -55,11 +56,35 @@ public partial class MainWindow
             NudFirstFraction.Value = 1d - (double)e.NewValue;
     }
 
-    private void OnSelectionChangedComboBoxAtomsType(object sender, SelectionChangedEventArgs e) { _atomType = (AtomType)ComboBoxAtomsType.SelectedIndex; }
+    private void OnSelectionChangedComboBoxAtomsType(object sender, SelectionChangedEventArgs e)
+    {
+        if (ComboBoxAtomsType.Text != "")
+        {
+            var res = Enum.TryParse(ComboBoxAtomsType.Text, out _atomType);
+            if (!res)
+                throw new Exception("Неверный тип атома");    
+        }
+    }
 
-    private void OnSelectionChangedComboBoxFirstAtomsType(object sender, SelectionChangedEventArgs e) { _firstAtom = (AtomType)ComboBoxFirstAtomsType.SelectedIndex; }
+    private void OnSelectionChangedComboBoxFirstAtomsType(object sender, SelectionChangedEventArgs e)
+    {
+        if (ComboBoxFirstAtomsType.Text != "")
+        {
+            var res = Enum.TryParse(ComboBoxFirstAtomsType.Text, out _firstAtom);
+            if (!res)
+                throw new Exception("Неверный тип атома");
+        }
+    }
 
-    private void OnSelectionChangedComboBoxSecondAtomsType(object sender, SelectionChangedEventArgs e) { _secondAtom = (AtomType)ComboBoxSecondAtomsType.SelectedIndex; }
+    private void OnSelectionChangedComboBoxSecondAtomsType(object sender, SelectionChangedEventArgs e)
+    {
+        if (ComboBoxSecondAtomsType.Text != "")
+        {
+            var res = Enum.TryParse(ComboBoxSecondAtomsType.Text, out _secondAtom);
+            if (!res)
+                throw new Exception("Неверный тип атома");
+        }
+    }
 
     private void OnValueChangedNudCountNumberAcf(object sender, RoutedPropertyChangedEventArgs<object> e)
     {
@@ -84,6 +109,8 @@ public partial class MainWindow
             _isCrystal = true;
             CrystalParamsPanel.Visibility = Visibility.Visible;
             AlloyParamsPanel.Visibility = Visibility.Collapsed;
+            
+            OnSelectionChangedComboBoxAtomsType(null, null);
         }
     }
 
@@ -94,6 +121,9 @@ public partial class MainWindow
             _isCrystal = false;
             CrystalParamsPanel.Visibility = Visibility.Collapsed;
             AlloyParamsPanel.Visibility = Visibility.Visible;
+            
+            OnSelectionChangedComboBoxFirstAtomsType(null, null);
+            OnSelectionChangedComboBoxSecondAtomsType(null, null);
         }
     }
 }

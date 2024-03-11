@@ -20,7 +20,7 @@ public partial class MainWindow
     private readonly System.Windows.Forms.Timer _timer;
     private Dictionary<string, object> _params;
     private List<List<AtomItem>> _atomItemsList;
-    private List<PointD> _msdPoints, _msdPoints1, _msdPoints2; 
+    private List<PointD> _msdPoints, _msdPoints1, _msdPoints2;
     private double _averT, _averP;
     private bool _isDisplacement, _isSnapshot, _isNormSpeeds, _isNewSystem, _isCrystal;
     private double _yMaxRb;
@@ -50,8 +50,7 @@ public partial class MainWindow
         SetUpChart(Chart3, "График  среднего квадрата смещения системы", "t, пс", "R², нм²");
         SetUpChart(Chart4, "График автокорреляционной функции скорости", "t, пс", "Z(t)");
 
-        _params = new Dictionary<string, object>(); // Инициализация словаря с параметрами.
-        _scene = new SceneManager { Viewport3D = Viewport }; // Инициализация сцены для визуализации.
+        OnCheckedRadioButtonCrystal(null, null);
     }
 
     #region ---СОБЫТИЯ СОЗДАНИЯ МОДЕЛИ---
@@ -62,6 +61,10 @@ public partial class MainWindow
         if (_timer.Enabled) // Остановка таймера.
             _timer.Stop();
 
+        _scene = new SceneManager { Viewport3D = Viewport }; // Инициализация сцены для визуализации.
+        _params = new Dictionary<string, object>(); // Инициализация словаря с параметрами.
+        GC.Collect();
+
         _params["size"] = NudSize.Value;
         _params["displacement"] = NudDisplacement.Value;
         if (!_isCrystal)
@@ -69,6 +72,7 @@ public partial class MainWindow
             _params["firstFraction"] = NudFirstFraction.Value;
             _params["secondFraction"] = NudSecondFraction.Value;
         }
+
         _params["ke"] = new List<double>();
         _params["pe"] = new List<double>();
         _params["fe"] = new List<double>();
@@ -109,8 +113,9 @@ public partial class MainWindow
                 fisrtFraction: (double)_params["firstFraction"],
                 secondTypeAtom: _secondAtom,
                 secondFraction: (double)_params["secondFraction"]
-            );    
+            );
         }
+
         _atomic.CreateSystem();
         _atomic.InitCalculation();
         _initStep = _atomic.CurrentStep;
@@ -211,6 +216,7 @@ public partial class MainWindow
             _msdPoints1 = new List<PointD> { new(0, 0) };
             _msdPoints2 = new List<PointD> { new(0, 0) };
         }
+
         _averT = 0;
         _averP = 0;
         _iter = 0;
@@ -317,7 +323,7 @@ public partial class MainWindow
                 {
                     RtbOutputInfo.AppendText($"\n{_averT / tempStep:F1} К - средняя температура");
                     RtbOutputInfo.AppendText($"\n{_averP / tempStep / 1e6:F1} МПа - среднее давление (через вириал)");
-                    RtbOutputInfo.AppendText($"\n{_atomic.P1 / tempStep / 1e6:F1} МПа - среднее давление\n\n");
+                    RtbOutputInfo.AppendText($"\n{_atomic.P2 / tempStep / 1e6:F1} МПа - среднее давление\n\n");
                     RtbOutputInfo.ScrollToEnd();
                 });
                 _averT = 0;
@@ -328,7 +334,6 @@ public partial class MainWindow
 
             // Расчёт среднего квадрата смещения.
             if (i % (int)_params["stepRt"] == 0 || i == _initStep + countStep - 1)
-            {
                 if (_isCrystal)
                 {
                     _msdPoints.Add(new PointD((i - _initStep + 1) * _atomic.dt, ((MonocrystalModel)_atomic).GetMsd()));
@@ -336,9 +341,8 @@ public partial class MainWindow
                 else
                 {
                     _msdPoints1.Add(new PointD((i - _initStep + 1) * _atomic.dt, ((AlloyModel)_atomic).GetMsd(flag: 1)));
-                    _msdPoints2.Add(new PointD((i - _initStep + 1) * _atomic.dt, ((AlloyModel)_atomic).GetMsd(flag: 2)));    
+                    _msdPoints2.Add(new PointD((i - _initStep + 1) * _atomic.dt, ((AlloyModel)_atomic).GetMsd(flag: 2)));
                 }
-            }
 
             // Обновление ProgressBar.
             _bgWorkerCalculation.ReportProgress(i - _initStep);
@@ -368,7 +372,7 @@ public partial class MainWindow
         Chart1.Refresh();
         Chart1.Plot.SaveFig(
             $"{_params["saveDirectory"]}\\Energy\\Steps_{_initStep - 1}_T_{(double)_params["T"]:F1}.png",
-            width: 1500, height: 1200
+            width: 750, height: 600
         );
 
         // Отрисовка графика радиального распределения.
@@ -380,42 +384,44 @@ public partial class MainWindow
         Chart2.Refresh();
         Chart2.Plot.SaveFig(
             $"{_params["saveDirectory"]}\\Rad\\Steps_{_initStep - 1}_T_{(double)_params["T"]:F0}.png",
-            width: 1500, height: 1200
+            width: 750, height: 600
         );
 
         // Отрисовка графика среднего квадрата смещения распределения.
-        if (_msdPoints1.Count != 1 && _msdPoints2.Count != 1)
+        if (_isCrystal && _msdPoints.Count != 1)
         {
-            if (_isCrystal)
-            {
-                Chart3.Plot.AddSignalXY(
-                    _msdPoints1.Select(p => p.X * 1e12).ToArray(),
-                    _msdPoints1.Select(p => p.Y * 1e18).ToArray(),
-                    Color.Fuchsia,
-                    $"Средний квадрат смещения {((MonocrystalModel)_atomic).AtomType}");
-            }
-            else
-            {
-                Chart3.Plot.AddSignalXY(
-                    _msdPoints1.Select(p => p.X * 1e12).ToArray(),
-                    _msdPoints1.Select(p => p.Y * 1e18).ToArray(),
-                    Color.Fuchsia,
-                    $"Средний квадрат смещения {((AlloyModel)_atomic).FirstAtomType}");
-                Chart3.Plot.AddSignalXY(
-                    _msdPoints2.Select(p => p.X * 1e12).ToArray(),
-                    _msdPoints2.Select(p => p.Y * 1e18).ToArray(),
-                    Color.Teal,
-                    $"Средний квадрат смещения {((AlloyModel)_atomic).SecondAtomType}"
-                );    
-            }
-            // Chart3.Plot.AddSignalXY(_msdPoints.Select(p => p.X * 1e12).ToArray(), _msdPoints.Select(p => p.Y * 1e18).ToArray(), Color.Indigo, "Средний квадрат смещения");
-            // Chart3.Plot.SetAxisLimits(xMin: 0, xMax: _msdPoints.Max(p => p.X * 1e12), yMin: 0, yMax: (_msdPoints.Max(p => p.Y * 1e18) < 1e-10 ? 0.1 : _msdPoints.Max(p => p.Y * 1e18)) * 1.5);
+            Chart3.Plot.AddSignalXY(
+                _msdPoints.Select(p => p.X * 1e12).ToArray(),
+                _msdPoints.Select(p => p.Y * 1e18).ToArray(),
+                Color.Fuchsia,
+                $"Средний квадрат смещения {((MonocrystalModel)_atomic).AtomType}");
+            Chart3.Plot.SetAxisLimits(xMin: 0, xMax: _msdPoints.Max(p => p.X * 1e12));
+            Chart3.Plot.Legend(location: Alignment.UpperRight);
+            Chart3.Refresh();
+            Chart3.Plot.SaveFig(
+                $"{_params["saveDirectory"]}\\Msd\\Steps_{_initStep - 1}_T_{(double)_params["T"]:F0}.png",
+                width: 750, height: 600
+            );
+        }
+        else if (!_isCrystal && _msdPoints1.Count != 1 && _msdPoints2.Count != 1)
+        {
+            Chart3.Plot.AddSignalXY(
+                _msdPoints1.Select(p => p.X * 1e12).ToArray(),
+                _msdPoints1.Select(p => p.Y * 1e18).ToArray(),
+                Color.Fuchsia,
+                $"Средний квадрат смещения {((AlloyModel)_atomic).FirstAtomType}");
+            Chart3.Plot.AddSignalXY(
+                _msdPoints2.Select(p => p.X * 1e12).ToArray(),
+                _msdPoints2.Select(p => p.Y * 1e18).ToArray(),
+                Color.Teal,
+                $"Средний квадрат смещения {((AlloyModel)_atomic).SecondAtomType}"
+            );
             Chart3.Plot.SetAxisLimits(xMin: 0, xMax: _msdPoints1.Max(p => p.X * 1e12));
             Chart3.Plot.Legend(location: Alignment.UpperRight);
             Chart3.Refresh();
             Chart3.Plot.SaveFig(
                 $"{_params["saveDirectory"]}\\Msd\\Steps_{_initStep - 1}_T_{(double)_params["T"]:F0}.png",
-                width: 1500, height: 1200
+                width: 750, height: 600
             );
         }
 
@@ -429,7 +435,7 @@ public partial class MainWindow
         Chart4.Refresh();
         Chart4.Plot.SaveFig(
             $"{_params["saveDirectory"]}\\Acf\\Steps_{_initStep - 1}_T_{(double)_params["T"]:F0}.png",
-            width: 1500, height: 1200
+            width: 750, height: 600
         );
 
         // Вывод информации в Rtb.
@@ -451,8 +457,9 @@ public partial class MainWindow
             RtbOutputInfo.AppendText($"Dₛ ≈ {d2FirstTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {((AlloyModel)_atomic).FirstAtomType} (через МНК)\n");
             RtbOutputInfo.AppendText($"Dₛ ≈ {d3FirstTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {((AlloyModel)_atomic).FirstAtomType} (через МНК (грубо))\n");
             RtbOutputInfo.AppendText($"Dₛ ≈ {d2SecondTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {((AlloyModel)_atomic).SecondAtomType} (через МНК)\n");
-            RtbOutputInfo.AppendText($"Dₛ ≈ {d3SecondTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {((AlloyModel)_atomic).SecondAtomType} (через МНК (грубо))\n");    
+            RtbOutputInfo.AppendText($"Dₛ ≈ {d3SecondTypeAtom:F5}•10⁻⁵ см²/с - коэф. самодифузии для {((AlloyModel)_atomic).SecondAtomType} (через МНК (грубо))\n");
         }
+
         // Звуковое оповещение.
         AlarmBeep(500, 500, 1);
 
@@ -471,7 +478,10 @@ public partial class MainWindow
     }
 
     // PROGRESS CHANGED CALCULATION
-    private void OnBackgroundWorkerProgressChangedCalculation(object sender, ProgressChangedEventArgs e) { ProgressBar.Value = e.ProgressPercentage; }
+    private void OnBackgroundWorkerProgressChangedCalculation(object sender, ProgressChangedEventArgs e)
+    {
+        ProgressBar.Value = e.ProgressPercentage;
+    }
 
     // Событие отмены вычислений.
     private void OnCancelCalculation(object sender, RoutedEventArgs e)

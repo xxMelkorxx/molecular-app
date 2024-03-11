@@ -7,24 +7,6 @@ public class MLJPotential
     // 1 эВ в Дж.
     public const double Ev = 1.602176634e-19;
     
-    // Тип атома.
-    public AtomType AtomType
-    {
-        set
-        {
-            _atomType = value;
-            switch (_atomType)
-            {
-                case AtomType.Ar:
-                    D = 0.01029 * Ev;
-                    Sigma = 0.3408e-9;
-                    break;
-                default: throw new Exception("Неверный тип атома");
-            }
-        }
-    }
-    private AtomType _atomType;
-    
     // Модуль потенциальной энергии взаимодействия между атомами при равновесии (м).
     public double Sigma;
 
@@ -42,7 +24,14 @@ public class MLJPotential
 
     public MLJPotential(AtomType atomType)
     {
-        _atomType = atomType;
+        switch (atomType)
+        {
+            case AtomType.Ar:
+                D = 0.01029 * Ev;
+                Sigma = 0.3408e-9;
+                break;
+            default: throw new Exception("Неверный тип атома");
+        }
     }
     
     /// <summary>
@@ -58,7 +47,7 @@ public class MLJPotential
     /// </summary>
     public double PotentialEnergy(double r2)
     {
-        return r2 < R1 ? Plj(r2) : r2 > R2 ? 0 : Plj(r2) * K(double.Sqrt(r2));;
+        return r2 < R1 ? Plj(r2) : r2 > R2 ? 0 : Plj(r2) * K(Math.Sqrt(r2));;
     }
     
     /// <summary>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using MolecularApp.potentials;
 
 namespace MolecularApp.atomic_model;
@@ -114,12 +115,12 @@ public class MonocrystalModel : AtomicModel
             for (var j = i + 1; j < CountAtoms; j++)
             {
                 var rij = SeparationSqured(Atoms[i].Position, Atoms[j].Position, out var dxdydz);
-
+        
                 var force = _potential.PotentialDerivative(rij, dxdydz);
                 sumForce += force;
                 Atoms[i].Acceleration += force / Atoms[i].Weight;
                 Atoms[j].Acceleration -= force / Atoms[i].Weight;
-
+        
                 _pe += _potential.PotentialEnergy(rij);
             }
             _virial += Atoms[i].Position.X * sumForce.X + Atoms[i].Position.Y * sumForce.Y + Atoms[i].Position.Z * sumForce.Z;

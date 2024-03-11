@@ -164,7 +164,7 @@
                     
                     <WrapPanel HorizontalAlignment="Right">
                         <RadioButton HorizontalAlignment="Right" Margin="0 5 10 0" 
-                                     IsChecked="True"
+                                     IsChecked="True" Name="RbCrystal"
                                      Checked="OnCheckedRadioButtonCrystal"
                                      Unchecked="OnUncheckedRadioButtonCrystal">
                             Монокристалл
